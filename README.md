@@ -10,6 +10,23 @@
 
 ## セットアップ
 
+### 1. 仮想環境の作成と依存関係のインストール
+
+本プロジェクトでは Python 3.3 以降の標準機能である `venv` を使用して環境を構築することを推奨します。
+
+```bash
+# 仮想環境の作成
+python3 -m venv venv
+
+# 仮想環境のアクティベート
+source venv/bin/activate
+
+# 依存関係のインストール
+pip install -r requirements.txt
+```
+
+### 2. 設定ファイルの準備
+
 1. `antigravity.yaml.example` を `antigravity.yaml` にコピーします。
    ```bash
    cp antigravity.yaml.example antigravity.yaml

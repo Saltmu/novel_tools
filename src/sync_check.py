@@ -1,12 +1,41 @@
 import os
-import json
+import yaml
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
+def load_config(config_path='antigravity.yaml'):
+    if not os.path.exists(config_path):
+        return None
+    with open(config_path, 'r', encoding='utf-8') as f:
+        return yaml.safe_load(f)
+
+def get_gdrive_config(config):
+    if not config or 'skills' not in config:
+        return None, None
+    for skill in config['skills']:
+        if 'sources' in skill:
+            for source in skill['sources']:
+                if source.get('type') == 'google-drive':
+                    return source.get('folder_id'), source.get('auth_file')
+    return None, None
+
 def main():
-    config_path = 'antigravity.yaml'
-    creds_path = 'credentials/novel-antigravity-sync-de1513029e5a.json'
-    folder_id = '1F5tAWZg_i7r2MuK6YSOMCthHMBe8Ihvr'
+    # Adjust paths if running from src/
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(root_dir, 'antigravity.yaml')
+    
+    config = load_config(config_path)
+    folder_id, creds_path_rel = get_gdrive_config(config)
+
+    if not folder_id or not creds_path_rel:
+        print("[ERROR] Could not find Google Drive configuration in antigravity.yaml")
+        return
+
+    # Handle relative paths in config
+    if creds_path_rel.startswith('./'):
+        creds_path = os.path.join(root_dir, creds_path_rel[2:])
+    else:
+        creds_path = os.path.join(root_dir, creds_path_rel)
 
     print(f"--- Diagnostic Report ---")
     

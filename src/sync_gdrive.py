@@ -1,20 +1,38 @@
 import os
 import io
 import time
-import sys
+import yaml
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-CACHE_FILE = '.sync_cache'
-LOCK_FILE = '.sync.lock'
-CACHE_DURATION = 300  # 5 minutes in seconds
+def load_config(config_path):
+    if not os.path.exists(config_path):
+        return None
+    with open(config_path, 'r', encoding='utf-8') as f:
+        return yaml.safe_load(f)
+
+def get_gdrive_config(config):
+    if not config or 'skills' not in config:
+        return None, None
+    for skill in config['skills']:
+        if 'sources' in skill:
+            for source in skill['sources']:
+                if source.get('type') == 'google-drive':
+                    return source.get('folder_id'), source.get('auth_file')
+    return None, None
 
 def main():
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(root_dir, 'antigravity.yaml')
+    
+    CACHE_FILE = os.path.join(root_dir, '.sync_cache')
+    LOCK_FILE = os.path.join(root_dir, '.sync.lock')
+    CACHE_DURATION = 300  # 5 minutes in seconds
+
     # Check if another process is already syncing
     if os.path.exists(LOCK_FILE):
         print("Another sync process is running. Waiting or skipping...")
-        # Wait a bit or skip
         return
 
     # Check cache
@@ -24,14 +42,24 @@ def main():
             print("Recently synced. Skipping...")
             return
 
+    config = load_config(config_path)
+    folder_id, creds_path_rel = get_gdrive_config(config)
+
+    if not folder_id or not creds_path_rel:
+        print("[ERROR] Could not find Google Drive configuration in antigravity.yaml")
+        return
+
+    if creds_path_rel.startswith('./'):
+        creds_path = os.path.join(root_dir, creds_path_rel[2:])
+    else:
+        creds_path = os.path.join(root_dir, creds_path_rel)
+
+    output_dir = os.path.join(root_dir, 'data/sources')
+
     try:
         # Create lock
         with open(LOCK_FILE, 'w') as f:
             f.write(str(os.getpid()))
-
-        creds_path = 'credentials/novel-antigravity-sync-de1513029e5a.json'
-        folder_id = '1F5tAWZg_i7r2MuK6YSOMCthHMBe8Ihvr'
-        output_dir = 'data/sources'
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
