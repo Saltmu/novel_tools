@@ -1,0 +1,37 @@
+version: "1.0"
+project:
+  name: "novel-tools-system"
+  description: "小説の整合性と世界観をチェックするエージェント環境"
+
+# 使用するAIモデルや基本動作の設定
+agent:
+  name: "Editor-AI"
+  model: "gemini-1.5-pro"
+  temperature: 0.2
+  system_prompt: |
+    あなたはプロの編集者であり、設定考証の専門家です。
+    提供されたスキルを活用し、物語の矛盾を厳格に指摘してください。
+
+skills:
+  # 1. 過去記述チェック：特定のドライブフォルダから既刊要約などを取得
+  - path: "./skills/consistency-checker"
+    sources:
+      - type: "google-drive"
+        folder_id: "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+        auth_file: "./credentials/your-service-account-key.json"
+
+  # 2. 世界観チェック：設定資料（バイブル）が保管されているフォルダを指定
+  - path: "./skills/world-logic-guard"
+    sources:
+      - type: "google-drive"
+        folder_id: "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+        auth_file: "./credentials/your-service-account-key.json"
+
+  # 3. 小説フォーマッター：NotebookLMなどの出力をウェブ小説向けに成形
+  - path: "./skills/novel-formatter"
+
+# 実行時の詳細設定（任意）
+settings:
+  memory:
+    type: "vector-db"
+    index_path: "./data/index"

@@ -1,0 +1,31 @@
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE settings
+.vscode/
+.idea/
+
+# Configuration
+antigravity.yaml
+!antigravity.yaml.example
+
+# Credentials and secrets (IMPORTANT)
+credentials/
+*.json
+
+# Local data and cache
+.sync_cache
+data/
+index/
+
+# System files
+.DS_Store
+Thumbs.db
+novels/
