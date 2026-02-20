@@ -83,9 +83,15 @@ def main():
 
             print(f"Processing: {name} ({mime_type})")
             
-            if mime_type == 'application/vnd.google-apps.document':
+            if mime_type == 'application/vnd.google-apps.folder':
+                print(f"Skipping folder: {name}")
+                continue
+            elif mime_type == 'application/vnd.google-apps.document':
                 request = service.files().export_media(fileId=file_id, mimeType='text/plain')
                 file_path = os.path.join(output_dir, f"{name}.txt")
+            elif mime_type.startswith('application/vnd.google-apps.'):
+                print(f"Skipping unsupported Google Workspace file: {name} ({mime_type})")
+                continue
             else:
                 request = service.files().get_media(fileId=file_id)
                 file_path = os.path.join(output_dir, name)
