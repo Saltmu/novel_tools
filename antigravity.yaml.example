@@ -6,29 +6,50 @@ project:
 # 使用するAIモデルや基本動作の設定
 agent:
   name: "Editor-AI"
-  model: "gemini-1.5-pro"
+  model: "gemini-3.1-pro"
   temperature: 0.2
   system_prompt: |
     あなたはプロの編集者であり、設定考証の専門家です。
     提供されたスキルを活用し、物語の矛盾を厳格に指摘してください。
 
+# 共通設定（YAMLアンカー）
+shared:
+  - &gdrive_source
+    type: "google-drive"
+    folder_id: "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+    auth_file: "./credentials/your-service-account-key.json"
+
 skills:
-  # 1. 過去記述チェック：特定のドライブフォルダから既刊要約などを取得
+  # === 1. Core Verification (基本検証) ===
+  # 過去記述チェック：特定のドライブフォルダから既刊要約などを取得
   - path: "./skills/consistency-checker"
     sources:
-      - type: "google-drive"
-        folder_id: "YOUR_GOOGLE_DRIVE_FOLDER_ID"
-        auth_file: "./credentials/your-service-account-key.json"
+      - *gdrive_source
 
-  # 2. 世界観チェック：設定資料（バイブル）が保管されているフォルダを指定
+  # 世界観チェック：設定資料（バイブル）が保管されているフォルダを指定
   - path: "./skills/world-logic-guard"
     sources:
-      - type: "google-drive"
-        folder_id: "YOUR_GOOGLE_DRIVE_FOLDER_ID"
-        auth_file: "./credentials/your-service-account-key.json"
+      - *gdrive_source
 
-  # 3. 小説フォーマッター：NotebookLMなどの出力をウェブ小説向けに成形
+  # === 2. Formatting (フォーマット調整) ===
+  # 小説フォーマッター：NotebookLMなどの出力をウェブ小説向けに成形
   - path: "./skills/novel-formatter"
+
+  # === 3. Quality Enhancement (品質向上) ===
+  # キャラクターの口調・声に関する一貫性の担保
+  - path: "./skills/character-voice-checker"
+
+  # プロットのペース配分の分析
+  - path: "./skills/plot-pacing-analyzer"
+
+  # Show, Don't Tell (語るな、見せよ) の原則に基づく描写強化
+  - path: "./skills/show-dont-tell-enhancer"
+
+  # 語彙とリズムの最適化
+  - path: "./skills/rhythm-vocabulary-optimizer"
+
+  # 伏線のトラッキングと回収状況の分析
+  - path: "./skills/foreshadowing-tracker"
 
 # 実行時の詳細設定（任意）
 settings:
