@@ -4,7 +4,7 @@ description: Run the entire novel review pipeline (Formatting -> Parallel Review
 
 # Novel Review Pipeline
 
-This workflow executes all available skills for one or more novel files. It is designed to be highly parallel: multiple files can be processed independently, and for each file, multiple review skills are executed concurrently.
+This workflow executes all available skills for one or more novel files. It is designed to be highly parallel: multiple files can be processed independently, and for each file, multiple review skills are executed concurrently. After reviews complete, the user selects which findings to accept, and the agent applies them.
 
 // turbo-all
 
@@ -20,16 +20,23 @@ mkdir -p novel_check_results/[TARGET_FILE_BASENAME]
 echo "Agent: Please run novel-formatter on [TARGET_FILE] and save to novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt. Wait for completion of this file's formatting."
 ```
 
-3. Once a file's formatting is complete, run the following 7 review skills **in parallel** on its formatted text `novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt`. 
+3. Once a file's formatting is complete, run the following 7 review skills **in parallel** on its formatted text `novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt`. Each skill outputs **YAML format** with `accepted: "n"` fields.
 
-- `world-logic-guard` -> `novel_check_results/[TARGET_FILE_BASENAME]/02_world_logic.md`
-- `consistency-checker` -> `novel_check_results/[TARGET_FILE_BASENAME]/03_consistency.md`
-- `show-dont-tell-enhancer` -> `novel_check_results/[TARGET_FILE_BASENAME]/04_show_dont_tell.md`
-- `foreshadowing-tracker` -> `novel_check_results/[TARGET_FILE_BASENAME]/05_foreshadowing.md`
-- `plot-pacing-analyzer` -> `novel_check_results/[TARGET_FILE_BASENAME]/06_pacing.md`
-- `rhythm-vocabulary-optimizer` -> `novel_check_results/[TARGET_FILE_BASENAME]/07_rhythm.md`
-- `character-voice-checker` -> `novel_check_results/[TARGET_FILE_BASENAME]/08_character_voice.md`
+- `world-logic-guard` -> `novel_check_results/[TARGET_FILE_BASENAME]/02_world_logic.yaml`
+- `consistency-checker` -> `novel_check_results/[TARGET_FILE_BASENAME]/03_consistency.yaml`
+- `show-dont-tell-enhancer` -> `novel_check_results/[TARGET_FILE_BASENAME]/04_show_dont_tell.yaml`
+- `foreshadowing-tracker` -> `novel_check_results/[TARGET_FILE_BASENAME]/05_foreshadowing.yaml`
+- `plot-pacing-analyzer` -> `novel_check_results/[TARGET_FILE_BASENAME]/06_pacing.yaml`
+- `rhythm-vocabulary-optimizer` -> `novel_check_results/[TARGET_FILE_BASENAME]/07_rhythm.yaml`
+- `character-voice-checker` -> `novel_check_results/[TARGET_FILE_BASENAME]/08_character_voice.yaml`
 
 ```bash
-echo "Agent: Please execute the above 7 skills in parallel to generate the review reports for [TARGET_FILE_BASENAME]."
+echo "Agent: Please execute the above 7 skills in parallel to generate the YAML review reports for [TARGET_FILE_BASENAME]."
+```
+
+4. **Human Review (per file):** After all 7 `.yaml` files are generated, the user opens each file and changes `accepted: "n"` to `accepted: "y"` for findings they wish to apply. When done, the user instructs the agent to proceed.
+
+5. **Apply Accepted Findings:** The agent reads all `.yaml` files in `novel_check_results/[TARGET_FILE_BASENAME]/`, collects every finding where `accepted: "y"`, and applies the corresponding `suggestion` to `novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt`. The agent should process findings in order of `location` (line number) from bottom to top to avoid line-number shifts. After all accepted findings are applied, save the updated file.
+```bash
+echo "Agent: Please read all .yaml files in novel_check_results/[TARGET_FILE_BASENAME]/, collect findings with accepted: 'y', and apply their suggestions to 01_formatted.txt in reverse line-number order."
 ```

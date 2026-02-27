@@ -51,24 +51,54 @@ novel_tools/
 
 ### `/novel_review_pipeline`
 
-フォーマット → 7並列レビューを、複数ファイルにまたがって一括実行するワークフローです。`novels/` フォルダ内の全 `.txt` ファイルを対象に、以下の処理を自動で行います。
+フォーマット → 7並列レビュー → 人間レビュー → 自動反映を、複数ファイルにまたがって一括実行するワークフローです。`novels/` フォルダ内の全 `.txt` ファイルを対象に、以下の処理を行います。
 
 1. `novel-formatter` でフォーマット → `novel_check_results/[ファイル名]/01_formatted.txt` に保存
-2. 以下の7スキルを**並列実行**してレビューレポートを生成：
+2. 以下の7スキルを**並列実行**し、YAML形式のレビューレポートを生成：
 
-| ファイル名              | スキル                      |
-| ----------------------- | --------------------------- |
-| `02_world_logic.md`     | world-logic-guard           |
-| `03_consistency.md`     | consistency-checker         |
-| `04_show_dont_tell.md`  | show-dont-tell-enhancer     |
-| `05_foreshadowing.md`   | foreshadowing-tracker       |
-| `06_pacing.md`          | plot-pacing-analyzer        |
-| `07_rhythm.md`          | rhythm-vocabulary-optimizer |
-| `08_character_voice.md` | character-voice-checker     |
+| ファイル名                | スキル                      |
+| ------------------------- | --------------------------- |
+| `02_world_logic.yaml`     | world-logic-guard           |
+| `03_consistency.yaml`     | consistency-checker         |
+| `04_show_dont_tell.yaml`  | show-dont-tell-enhancer     |
+| `05_foreshadowing.yaml`   | foreshadowing-tracker       |
+| `06_pacing.yaml`          | plot-pacing-analyzer        |
+| `07_rhythm.yaml`          | rhythm-vocabulary-optimizer |
+| `08_character_voice.yaml` | character-voice-checker     |
+
+3. **人間レビュー:** 各 `.yaml` ファイル内の指摘事項を確認し、採用したい項目の `accepted: "n"` を `accepted: "y"` に変更する
+4. **自動反映:** エージェントが `accepted: "y"` の指摘のみを `01_formatted.txt` に適用
+5. **反映の実行:** YAML編集後、以下のプロンプトをエージェントに送信して反映を開始する：
+   ```
+   「novel_check_results/[ファイル名]/ 内の全 .yaml を読み取り、accepted: "y" の指摘を 01_formatted.txt に反映して」
+   ```
+
+#### レビュー結果のYAML構造
+
+各スキルの出力は以下の共通スキーマに従います：
+
+```yaml
+findings:
+  - id: "WL-001"              # スキル略称 + 連番
+    location: "19-20行目"       # 該当箇所
+    original: "「原文の抜粋」"   # 対象テキスト
+    category: "設定矛盾"        # スキル固有カテゴリ
+    severity: "high"            # high / medium / low / info
+    analysis: "解析・理由"
+    suggestion: "修正案テキスト"
+    accepted: "n"               # ← "y" に変更すると採用
+```
+
+#### 使い方
 
 ```
-# 使用例：エージェントへの依頼
+# Step 1-2: 全ファイルをレビュー
 「/novel_review_pipeline を使って novels/ 内の全ファイルをレビューして」
+
+# Step 3: 各 .yaml ファイルを開き accepted: "n" → "y" に変更
+
+# Step 4-5: 採用した指摘を反映
+「novel_check_results/1-2/ 内の全 .yaml を読み取り、accepted: "y" の指摘を 01_formatted.txt に反映して」
 ```
 
 ## 参照資料（data/sources/）
