@@ -15,7 +15,7 @@ category: "Novel-Editing"
 3. 「Tell」であると判定された場合、その場面の状況やキャラクターの性格を踏まえ、五感（視覚・聴覚・触覚・嗅覚・味覚）や身体的反応、具体的な行動を用いた「Show」の表現案を複数提案する。
 
 # 出力フォーマット
-以下のYAML形式で提案を行ってください。出力全体をYAMLコードブロック（```yaml ... ```）で囲むこと。
+以下のYAML形式で提案を行ってください。**指摘事項が複数ある場合は、必ず配列（リスト）としてすべての指摘事項を出力してください（最初の一つで打ち切らないこと）。** 出力全体をYAMLコードブロック（```yaml ... ```）で囲むこと。
 
 ```yaml
 findings:
@@ -24,8 +24,16 @@ findings:
     original: "「該当テキストの抜粋」"
     category: "Tell検出"
     severity: "medium"             # high / medium / low / info
-    analysis: "なぜこの表現が「Tell」であるか、どのように改善すべきかの理由。"
+    analysis: "1つ目のなぜこの表現が「Tell」であるか、どのように改善すべきかの理由。"
     suggestion: "Show（描写）の提案。複数案がある場合は改行で区切る。"
+    accepted: "n"
+  - id: "SD-002"
+    location: "〇行目"
+    original: "「別の該当テキストの抜粋」"
+    category: "Tell検出"
+    severity: "low"
+    analysis: "2つ目の指摘内容の説明（複数ある場合はこのように列挙する）。"
+    suggestion: "Show（描写）の提案。"
     accepted: "n"
 ```
 

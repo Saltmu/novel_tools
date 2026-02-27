@@ -16,7 +16,7 @@ category: "Novel-Editing"
 3. **心理導線チェック:** キャラクターの感情の変化が「出来事 → 感情 → 行動」のステップを自然に踏んでいるか分析する。唐突な心変わりや、動機付けの弱い行動がないか検証する。
 
 # 出力フォーマット
-問題点や改善案を以下のYAML形式で報告します。出力全体をYAMLコードブロック（```yaml ... ```）で囲むこと。
+問題点や改善案を以下のYAML形式で報告します。**指摘事項が複数ある場合は、必ず配列（リスト）としてすべての指摘事項を出力してください（最初の一つで打ち切らないこと）。** 出力全体をYAMLコードブロック（```yaml ... ```）で囲むこと。
 
 ```yaml
 findings:
@@ -25,7 +25,15 @@ findings:
     original: "「該当テキストの抜粋」"
     category: "ボイスのブレ"       # ボイスのブレ / 心理導線
     severity: "medium"             # high / medium / low / info
-    analysis: "指摘内容の説明。"
+    analysis: "1つ目の指摘内容の説明。"
+    suggestion: "修正案または提案。"
+    accepted: "n"
+  - id: "CV-002"
+    location: "〇行目"
+    original: "「別の該当テキストの抜粋」"
+    category: "心理導線"
+    severity: "low"
+    analysis: "2つ目の指摘内容の説明（複数ある場合はこのように列挙する）。"
     suggestion: "修正案または提案。"
     accepted: "n"
 ```

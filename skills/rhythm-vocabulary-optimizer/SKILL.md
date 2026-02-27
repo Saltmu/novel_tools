@@ -22,7 +22,7 @@ category: "Novel-Editing"
 3. 問題箇所に対して、より情景が浮かぶ豊かな類語を用いたり、文を分割・結合したりする具体的な修正案を提示する。
 
 # 出力フォーマット
-改善点が見つかった場合、以下のYAML形式で報告してください。出力全体をYAMLコードブロック（```yaml ... ```）で囲むこと。
+改善点が見つかった場合、以下のYAML形式で報告してください。**指摘事項が複数ある場合は、必ず配列（リスト）としてすべての指摘事項を出力してください（最初の一つで打ち切らないこと）。** 出力全体をYAMLコードブロック（```yaml ... ```）で囲むこと。
 
 ```yaml
 findings:
@@ -31,7 +31,15 @@ findings:
     original: "「該当テキストの抜粋」"
     category: "文末重複"           # 文末重複 / 接続詞多用 / 語彙 / 一文長 / リズム
     severity: "medium"             # high / medium / low / info
-    analysis: "問題点の理由と解説。"
+    analysis: "1つ目の問題点の理由と解説。"
+    suggestion: "修正案テキスト。"
+    accepted: "n"
+  - id: "RV-002"
+    location: "〇行目"
+    original: "「別の該当テキストの抜粋」"
+    category: "一文長"
+    severity: "low"
+    analysis: "2つ目の指摘内容の説明（複数ある場合はこのように列挙する）。"
     suggestion: "修正案テキスト。"
     accepted: "n"
 ```
