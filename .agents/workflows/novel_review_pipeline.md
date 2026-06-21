@@ -6,6 +6,10 @@ description: Run the entire novel review pipeline (Formatting -> Parallel Review
 
 This workflow executes all available skills for one or more novel files. It is designed to be highly parallel: multiple files can be processed independently, and for each file, multiple review skills are executed concurrently. After reviews complete, the user selects which findings to accept, and the agent applies them.
 
+> [!TIP]
+> **Context Caching:**
+> Since multiple review skills are executed on the same formatted chapter and settings context, the executing agent system or API runtime should enable **Context Caching** to cache the common system prompts, settings context, and formatted chapter text. This dramatically reduces API token consumption and costs.
+
 // turbo-all
 
 0. Identify all target novel files (e.g., all `.txt` files in the `novels/` directory). **Steps 1-3 should be executed for each file independently and in parallel.**
