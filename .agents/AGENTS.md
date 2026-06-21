@@ -14,6 +14,15 @@
 - **ファイル入出力時のエンコーディング指定**:
   PowerShellコマンドを使用してファイルの読み書き（`Get-Content`、`Out-File`、`Set-Content`、リダイレクト `>` など）を行う際は、Windowsのデフォルトエンコーディング（Shift_JISやUTF-16）による文字化けを防ぐため、必ず明示的に `-Encoding utf8` などを指定してUTF-8で処理してください。
 
+- **Windows環境でのGitおよびGitHub CLIのパスと認証設定**:
+  Windows環境において `git` または `gh` コマンドを使用する際は、コマンドが見つからないエラーや、`git push` 等が資格情報の入力プロンプトで応答待ち（ハング）になるのを防ぐため、以下の対応を必ず行ってください。
+  1. コマンド実行前に、セッションの一時的な環境変数 `PATH` に Git および GitHub CLI の標準インストールパスを追加してください。
+     *追加コード*: `$env:PATH += ";C:\Program Files\Git\cmd;C:\Program Files\GitHub CLI"`
+  2. Git操作（特にプッシュ等）を行う前には、資格情報エラーを防ぐために `gh auth setup-git` を実行してください。
+  
+  *例（Gitプッシュ時のワンライナー）*:
+  `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; $env:PATH += ";C:\Program Files\Git\cmd;C:\Program Files\GitHub CLI"; gh auth setup-git; git push origin <branch_name>`
+
 ## 3. Pythonの実行環境について
 - **Poetry環境の利用**:
   Pythonスクリプトを実行する際は、依存関係の不整合を防ぐため、グローバル環境ではなくPoetryを使用し、`poetry run python <script.py>` の形式で実行するか、あるいはプロジェクト内の仮想環境（`venv`）をアクティベートして実行してください。
