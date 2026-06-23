@@ -29,24 +29,33 @@ echo "Agent: Please run novel-formatter on [TARGET_FILE] and save to novel_check
 poetry run python src/filter_context.py novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt novel_check_results/[TARGET_FILE_BASENAME]/01_filtered_context.txt
 ```
 
-3. Once a file's formatting and context filtering are complete, run the following 2 integrated review skills **in parallel** on its formatted text `novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt`. 
+3. Once a file's formatting and context filtering are complete, execute the parallel review using subagents:
 
-**OPTIMIZED SINGLE-PASS RUN:**
-To optimize token consumption and utilize the large context capabilities:
-- The agent MUST execute each review skill in a **single pass** without splitting the text or calling the prompt multiple times.
-- To prevent output truncation, the agent must prioritize finding the most critical issues (severity: `high` or `medium`) and limit the output findings to a **maximum of 15 items** per skill.
-- Each skill outputs **YAML format** with `accepted: "n"` fields.
+**SUBAGENT PARALLEL EXECUTION:**
+The main agent MUST spawn two specialist subagents in parallel to perform the review:
+- **Logic Auditor (Subagent)**: Runs the `logic-consistency-reviewer` skill on `01_formatted.txt` using `01_filtered_context.txt` as settings reference. Saves findings to `novel_check_results/[TARGET_FILE_BASENAME]/02_logic_consistency.yaml`.
+- **Style Editor (Subagent)**: Runs the `style-expression-reviewer` skill on `01_formatted.txt`. Saves findings to `novel_check_results/[TARGET_FILE_BASENAME]/03_style_expression.yaml`.
 
-- `logic-consistency-reviewer` -> `novel_check_results/[TARGET_FILE_BASENAME]/02_logic_consistency.yaml` (Note: The agent should read `novel_check_results/[TARGET_FILE_BASENAME]/01_filtered_context.txt` as the settings context, rather than the raw data files in `data/sources/`.)
-- `style-expression-reviewer` -> `novel_check_results/[TARGET_FILE_BASENAME]/03_style_expression.yaml`
+Use the `invoke_subagent` tool to spawn these subagents concurrently.
 
 ```bash
-echo "Agent: Please run filter_context.py first. Then execute the 2 integrated skills in a single pass. For logic-consistency-reviewer, use 01_filtered_context.txt as settings reference."
+echo "Agent: Please spawn the Logic Auditor and Style Editor subagents in parallel to review 01_formatted.txt."
 ```
 
-4. **Human Review (per file):** After all 2 `.yaml` files are generated, the user opens each file and changes `accepted: "n"` to `accepted: "y"` for findings they wish to apply. When done, the user instructs the agent to proceed.
+3.5. **Consensus & Conflict Resolution (Merge):**
+After both subagents complete their reviews, the main agent (acting as Editor-in-Chief) must read both YAML files and perform consensus merging:
+- **Remove Duplicates:** Consolidate similar findings on the same lines.
+- **Resolve Conflicts:** Verify that the Style Editor's suggestions do not violate the world-building rules or character profiles identified by the Logic Auditor. If a conflict occurs, prioritize the logic or adjust the style suggestion to align with the setting rules.
+- **Filter by Severity:** Keep only critical findings (severity: `high` or `medium`) and limit the consolidated findings to a **maximum of 20-25 items**.
+- **Consolidated Output:** Save the merged findings as `novel_check_results/[TARGET_FILE_BASENAME]/00_integrated_findings.yaml`. Optionally, create a clean markdown summary report at `novel_check_results/[TARGET_FILE_BASENAME]/00_integrated_report.md`.
 
-5. **Apply Accepted Findings:** The agent reads all `.yaml` files in `novel_check_results/[TARGET_FILE_BASENAME]/`, collects every finding where `accepted: "y"`, and applies the corresponding `suggestion` to `novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt`. The agent should process findings in order of `location` (line number) from bottom to top to avoid line-number shifts. After all accepted findings are applied, save the updated file.
 ```bash
-echo "Agent: Please read all .yaml files in novel_check_results/[TARGET_FILE_BASENAME]/, collect findings with accepted: 'y', and apply their suggestions to 01_formatted.txt in reverse line-number order."
+echo "Agent: Read 02_logic_consistency.yaml and 03_style_expression.yaml, resolve any logic-style conflicts, and save the merged findings to 00_integrated_findings.yaml."
+```
+
+4. **Human Review (per file):** The user opens the consolidated `00_integrated_findings.yaml` file, reviews the resolved findings, and changes `accepted: "n"` to `accepted: "y"` only for the suggestions they wish to apply.
+
+5. **Apply Consolidated Findings:** The agent reads `00_integrated_findings.yaml`, collects every finding where `accepted: "y"`, and applies the corresponding `suggestion` to `novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt` in reverse line-number order (bottom to top).
+```bash
+echo "Agent: Read 00_integrated_findings.yaml, collect findings with accepted: 'y', and apply suggestions to 01_formatted.txt in reverse line-number order."
 ```
