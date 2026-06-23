@@ -115,6 +115,36 @@ findings:
     accepted: "n"              # ← "y" に変更すると採用
 ```
 
+#### 使い方
+
+##### 1. エージェントチャットでの対話的反映
+
+1. **レビューの実行**:
+   チャットに以下の指示を送信して並列レビューを実行します。
+   ```
+   /novel_review_pipeline を使って novels/1_12.txt をレビューして
+   ```
+2. **対話的反映の実行**:
+   レビュー完了後、エージェントが統合された指摘の一覧を提示し、反映するかどうかを問いかけます。
+   - 「`INT-001` と `INT-003` を適用して」、「すべて適用して」、「不要」などのようにチャットで返答するだけで、エージェントが自動的にスクリプトを呼び出して小説テキスト（`01_formatted.txt`）に修正を正確に適用します。
+
+##### 2. コマンドライン（CLI）での対話的・自動反映
+
+ローカルのターミナルからスクリプトを直接実行し、対話的または自動で反映を行うことができます。
+
+```bash
+# ターミナル上で1件ずつ確認しながら反映する（手動修正入力も可能）
+poetry run python src/apply_findings.py --dir novel_check_results/1_12 --interactive
+
+# 手動でYAMLを編集して accepted: "y" にしたものを一括自動反映する
+poetry run python src/apply_findings.py --dir novel_check_results/1_12 --auto
+
+# 特定の指摘ID（カンマ区切り）だけを指定して反映する
+poetry run python src/apply_findings.py --dir novel_check_results/1_12 --accept-ids INT-001,INT-003
+
+# LLMを使用せず、指摘内容の「...」から修正文字列を抽出して単純置換する
+poetry run python src/apply_findings.py --dir novel_check_results/1_12 --auto --no-llm
+```
 
 ## 参照資料（data/sources/）
 
