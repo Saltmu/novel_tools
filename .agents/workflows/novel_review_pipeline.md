@@ -53,9 +53,22 @@ After both subagents complete their reviews, the main agent (acting as Editor-in
 echo "Agent: Read 02_logic_consistency.yaml and 03_style_expression.yaml, resolve any logic-style conflicts, and save the merged findings to 00_integrated_findings.yaml."
 ```
 
-4. **Human Review (per file):** The user opens the consolidated `00_integrated_findings.yaml` file, reviews the resolved findings, and changes `accepted: "n"` to `accepted: "y"` only for the suggestions they wish to apply.
+4. **Interactive Reflective Review (Chat/CLI):**
+   The main agent reviews the output and presents a summary of the merged findings to the user in the chat, asking: "Would you like to apply these review results?"
+   The user can reply in the chat with a list of IDs to apply (e.g., "Apply 1 and 3" or "Apply INT-001, INT-003"), "Apply all", or "Discard".
+   
+   Alternatively, the user can run the interactive CLI script directly in their terminal to review and apply them step-by-step:
+   ```bash
+   poetry run python src/apply_findings.py --dir novel_check_results/[TARGET_FILE_BASENAME] --interactive
+   ```
 
-5. **Apply Consolidated Findings:** The agent reads `00_integrated_findings.yaml`, collects every finding where `accepted: "y"`, and applies the corresponding `suggestion` to `novel_check_results/[TARGET_FILE_BASENAME]/01_formatted.txt` in reverse line-number order (bottom to top).
-```bash
-echo "Agent: Read 00_integrated_findings.yaml, collect findings with accepted: 'y', and apply suggestions to 01_formatted.txt in reverse line-number order."
-```
+5. **Apply Selection (Automated via Script):**
+   Once the user specifies which findings to apply in the chat (or decides to apply all), the agent runs the `apply_findings.py` script with the corresponding mode to modify the text accurately and update the YAML status.
+   - To apply specific IDs selected by the user:
+     ```bash
+     poetry run python src/apply_findings.py --dir novel_check_results/[TARGET_FILE_BASENAME] --accept-ids INT-001,INT-003
+     ```
+   - To apply all findings marked as `accepted: "y"` (if the user edited the YAML file manually):
+     ```bash
+     poetry run python src/apply_findings.py --dir novel_check_results/[TARGET_FILE_BASENAME] --auto
+     ```
