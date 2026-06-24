@@ -95,7 +95,6 @@ def stream_process_output(cmd):
             encoding="utf-8",
         )
 
-
         while True:
             line = process.stdout.readline()
             if not line and process.poll() is not None:
@@ -331,7 +330,16 @@ async def stream_apply():
     try:
         parent_dir = os.path.dirname(NOVEL_PATH)
         script_path = os.path.join(os.path.dirname(__file__), "apply_findings.py")
-        cmd = ["poetry", "run", "python", "-u", script_path, "--dir", parent_dir, "--auto"]
+        cmd = [
+            "poetry",
+            "run",
+            "python",
+            "-u",
+            script_path,
+            "--dir",
+            parent_dir,
+            "--auto",
+        ]
 
         return stream_process_output(cmd)
     except Exception as e:
