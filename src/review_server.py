@@ -238,7 +238,7 @@ async def preview_novel(
         )
 
     try:
-        with open(novel_path, "r", encoding="utf-8") as f:
+        with open(novel_path, encoding="utf-8") as f:
             content = f.read()
         return {"content": content, "filename": safe_file}
     except Exception as e:
