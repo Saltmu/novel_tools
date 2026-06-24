@@ -49,3 +49,6 @@ sync-gdrive = "src.sync_gdrive:main"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
