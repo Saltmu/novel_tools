@@ -209,7 +209,7 @@ def print_finding_diff(finding):
     print("-" * 60)
 
 
-def main():
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Apply integrated findings to formatted novel draft."
     )
@@ -242,9 +242,10 @@ def main():
         action="store_true",
         help="Disable LLM replacement, use local extraction rules instead.",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    output_dir = args.dir
+
+def _validate_output_dir(output_dir: str) -> None:
     if output_dir:
         abs_output_dir = os.path.abspath(output_dir)
         norm_path = os.path.normpath(abs_output_dir)
@@ -265,11 +266,12 @@ def main():
         print(f"Error: Directory '{output_dir}' does not exist.", file=sys.stderr)
         sys.exit(1)
 
+
+def _load_inputs(output_dir: str) -> tuple[str, str, list[str], list[dict], str]:
     basename = os.path.basename(os.path.abspath(output_dir))
     formatted_txt_path = os.path.join(output_dir, f"{basename}_formatted.txt")
     findings_yaml_path = os.path.join(output_dir, f"{basename}_findings.yaml")
 
-    # Fallback for backward compatibility
     if not os.path.exists(formatted_txt_path):
         fallback_txt = os.path.join(output_dir, "01_formatted.txt")
         if os.path.exists(fallback_txt):
@@ -287,11 +289,9 @@ def main():
         print(f"Error: '{findings_yaml_path}' not found.", file=sys.stderr)
         sys.exit(1)
 
-    # Read formatted text (split into lines)
     raw_text = read_file(formatted_txt_path)
     text_lines = raw_text.splitlines(keepends=True)
 
-    # Load findings YAML
     try:
         with open(findings_yaml_path, encoding="utf-8") as f:
             yaml_data = yaml.safe_load(f)
@@ -300,87 +300,109 @@ def main():
         print(f"Error parsing YAML '{findings_yaml_path}': {e}", file=sys.stderr)
         sys.exit(1)
 
-    if not findings:
-        print("No findings to apply.")
-        sys.exit(0)
+    return formatted_txt_path, findings_yaml_path, text_lines, findings, basename
 
-    # Default to interactive mode if no mode is specified
-    if not args.interactive and not args.accept_ids and not args.auto:
-        print("Warning: No mode specified. Defaulting to interactive mode.")
-        args.interactive = True
 
-    # Filter/Select findings to apply
-    accepted_ids = set()
-    if args.accept_ids:
-        accepted_ids = {x.strip() for x in args.accept_ids.split(",")}
+def _interactive_choice(finding: dict) -> str:
+    """
+    Prompts the user for a single finding and sets its accepted state.
+    """
+    print_finding_diff(finding)
+    candidate = extract_suggestion_candidate(finding.get("suggestion", ""))
+    if candidate:
+        print(f"(抽出された簡易修正案候補: 「{candidate}」)")
 
-    # Initialize/normalize accepted status in YAML findings
-    for f in findings:
-        if "accepted" not in f:
-            f["accepted"] = None
-
-    # Phase 1: Determine which findings to apply (User input / CLI parameters)
-    for i, finding in enumerate(findings):
-        fid = finding.get("id")
-
-        if args.accept_ids:
-            if fid in accepted_ids:
-                finding["accepted"] = "y"
-            else:
-                finding["accepted"] = "n"
-            continue
-
-        if args.auto:
-            if finding.get("accepted") != "y":
-                finding["accepted"] = "n"
-            continue
-
-        # Interactive Mode
-        print_finding_diff(finding)
-        candidate = extract_suggestion_candidate(finding.get("suggestion", ""))
-        if candidate:
-            print(f"(抽出された簡易修正案候補: 「{candidate}」)")
-
-        choice = (
-            input(
-                "この指摘を適用しますか？ [y:はい / n:いいえ / e:手動入力 / a:以降すべて適用 / q:終了して適用開始]: "
-            )
-            .strip()
-            .lower()
+    choice = (
+        input(
+            "この指摘を適用しますか？ [y:はい / n:いいえ / e:手動入力 / a:以降すべて適用 / q:終了して適用開始]: "
         )
+        .strip()
+        .lower()
+    )
 
-        if choice == "y":
+    if choice == "y":
+        finding["accepted"] = "y"
+    elif choice == "e":
+        custom_replacement = input(
+            "適用する修正後のテキストを入力してください: "
+        ).strip()
+        finding["suggestion"] = f"「{custom_replacement}」に修正してください。"
+        finding["accepted"] = "y"
+
+    return choice
+
+
+def _apply_all_remaining(
+    findings: list[dict],
+    start_idx: int,
+    accepted_ids: set[str],
+    args: argparse.Namespace,
+) -> None:
+    """
+    Sets accepted status for all remaining findings.
+    """
+    for remain_f in findings[start_idx:]:
+        remain_fid = remain_f.get("id")
+        if args.accept_ids:
+            remain_f["accepted"] = "y" if remain_fid in accepted_ids else "n"
+        else:
+            remain_f["accepted"] = "y"
+
+
+def _determine_accepted_findings_auto(
+    findings: list[dict], accepted_ids: set[str], args: argparse.Namespace
+) -> None:
+    """
+    Sets accepted status automatically based on accept_ids or auto flags.
+    """
+    for f in findings:
+        fid = f.get("id")
+        if args.accept_ids:
+            f["accepted"] = "y" if fid in accepted_ids else "n"
+        elif args.auto:
+            if f.get("accepted") != "y":
+                f["accepted"] = "n"
+
+
+def _determine_accepted_findings_interactive(
+    findings: list[dict], accepted_ids: set[str], args: argparse.Namespace
+) -> None:
+    """
+    Queries the user interactively for each finding's accepted state.
+    """
+    for i, finding in enumerate(findings):
+        choice = _interactive_choice(finding)
+
+        if choice == "a":
             finding["accepted"] = "y"
-        elif choice == "e":
-            custom_replacement = input(
-                "適用する修正後のテキストを入力してください: "
-            ).strip()
-            finding["suggestion"] = f"「{custom_replacement}」に修正してください。"
-            finding["accepted"] = "y"
-        elif choice == "a":
-            finding["accepted"] = "y"
-            for remain_f in findings[i + 1 :]:
-                remain_fid = remain_f.get("id")
-                if args.accept_ids:
-                    if remain_fid in accepted_ids:
-                        remain_f["accepted"] = "y"
-                    else:
-                        remain_f["accepted"] = "n"
-                else:
-                    remain_f["accepted"] = "y"
+            _apply_all_remaining(findings, i + 1, accepted_ids, args)
             args.interactive = False
             args.auto = True
             break
         elif choice == "q":
             print("適用処理を終了し、これまでに確定した変更を適用します。")
             break
-        else:
+        elif choice not in ("y", "e"):
             finding["accepted"] = "n"
 
-    # Phase 2: Grouping and Application
-    active_findings = []
-    skipped_count = 0
 
+def _determine_accepted_findings(
+    findings: list[dict], text_lines: list[str], args: argparse.Namespace
+) -> list[tuple[int, dict]]:
+    accepted_ids = set()
+    if args.accept_ids:
+        accepted_ids = {x.strip() for x in args.accept_ids.split(",")}
+
+    for f in findings:
+        if "accepted" not in f:
+            f["accepted"] = None
+
+    if args.accept_ids or args.auto:
+        _determine_accepted_findings_auto(findings, accepted_ids, args)
+    else:
+        _determine_accepted_findings_interactive(findings, accepted_ids, args)
+
+    active_findings = []
     for f in findings:
         fid = f.get("id")
         if f.get("accepted") == "y":
@@ -395,11 +417,15 @@ def main():
                 f["apply_status"] = "failed"
                 f["apply_result"] = "原文が見つかりませんでした。"
         else:
-            skipped_count += 1
             f["apply_status"] = None
             f["apply_result"] = None
 
-    # Group close findings (within 5 lines of each other)
+    return active_findings
+
+
+def _group_findings(
+    active_findings: list[tuple[int, dict]],
+) -> list[list[tuple[int, dict]]]:
     active_findings.sort(key=lambda x: x[0])
     groups = []
     if active_findings:
@@ -414,9 +440,15 @@ def main():
                 current_group = [item]
         groups.append(current_group)
 
-    # Sort groups in descending order of line numbers to apply from bottom to top
     groups.sort(key=lambda g: g[0][0], reverse=True)
+    return groups
 
+
+def _apply_grouped_findings(
+    text_lines: list[str],
+    groups: list[list[tuple[int, dict]]],
+    args: argparse.Namespace,
+) -> tuple[int, int]:
     applied_count = 0
     failed_count = 0
 
@@ -426,7 +458,7 @@ def main():
         L_min = min(line_nos)
         L_max = max(line_nos)
 
-        C = 4  # Context size
+        C = 4
         start_idx = max(0, L_min - 1 - C)
         end_idx = min(len(text_lines), L_max + C)
         context_lines = text_lines[start_idx:end_idx]
@@ -454,7 +486,6 @@ def main():
                 f["apply_status"] = "success"
                 f["apply_result"] = "LLMコンテキスト一括方式"
         else:
-            # Fallback
             result_block_text, success_findings, failed_findings = (
                 apply_fallback_to_block(context_lines, findings_in_block)
             )
@@ -480,11 +511,19 @@ def main():
                 f["apply_status"] = "failed"
                 f["apply_result"] = error_msg
 
-    # Save modified text
+    return applied_count, failed_count
+
+
+def _save_outputs_and_print_summary(
+    formatted_txt_path: str,
+    findings_yaml_path: str,
+    text_lines: list[str],
+    findings: list[dict],
+    stats: tuple[int, int, int],
+) -> None:
     write_file(formatted_txt_path, "".join(text_lines))
     print(f"\n小説テキストを更新しました: {formatted_txt_path}")
 
-    # Save updated findings YAML
     updated_yaml_data = {"findings": findings}
     try:
         with open(findings_yaml_path, "w", encoding="utf-8") as f:
@@ -495,9 +534,41 @@ def main():
     except Exception as e:
         print(f"Error saving updated YAML '{findings_yaml_path}': {e}", file=sys.stderr)
 
+    applied_count, skipped_count, failed_count = stats
     print("\n=== 反映処理完了 ===")
     print(
         f"適用: {applied_count} 件, スキップ: {skipped_count} 件, 失敗: {failed_count} 件"
+    )
+
+
+def main():
+    args = _parse_args()
+
+    _validate_output_dir(args.dir)
+
+    formatted_txt_path, findings_yaml_path, text_lines, findings, basename = (
+        _load_inputs(args.dir)
+    )
+
+    if not findings:
+        print("No findings to apply.")
+        sys.exit(0)
+
+    if not args.interactive and not args.accept_ids and not args.auto:
+        print("Warning: No mode specified. Defaulting to interactive mode.")
+        args.interactive = True
+
+    active_findings = _determine_accepted_findings(findings, text_lines, args)
+
+    groups = _group_findings(active_findings)
+
+    applied_count, failed_count = _apply_grouped_findings(text_lines, groups, args)
+
+    skipped_count = sum(1 for f in findings if f.get("accepted") != "y")
+    stats = (applied_count, skipped_count, failed_count)
+
+    _save_outputs_and_print_summary(
+        formatted_txt_path, findings_yaml_path, text_lines, findings, stats
     )
 
 
