@@ -37,6 +37,7 @@ def test_save_novel():
     import os
     import tempfile
 
+    os.makedirs("novels", exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, dir="novels") as tmp:
         tmp.write(b"Original Content")
         tmp_name = tmp.name
@@ -61,6 +62,7 @@ def test_backup_and_rollback():
     import os
     import tempfile
 
+    os.makedirs("novels", exist_ok=True)
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, dir="novels") as tmp:
         tmp.write(b"Original content for backup")
         tmp_name = tmp.name
