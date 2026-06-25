@@ -387,7 +387,7 @@ def main():
     if args.accept_ids:
         accepted_ids = {x.strip() for x in args.accept_ids.split(",")}
 
-    findings_map = {f.get("id"): f for f in findings}
+
 
     # Initialize/normalize accepted status in YAML findings
     for f in findings:
@@ -505,7 +505,7 @@ def main():
 
         success = False
         result_block_text = None
-        method = "llm"
+
 
         if not args.no_llm:
             result_block_text = query_llm_for_block_replacement(context_lines, findings_in_block, args.model)

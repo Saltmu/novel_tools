@@ -1,10 +1,12 @@
 from unittest.mock import patch
+
 import yaml
+
 from src.apply_findings import (
     apply_finding_to_text,
     extract_suggestion_candidate,
-    parse_line_number,
     main,
+    parse_line_number,
 )
 
 
