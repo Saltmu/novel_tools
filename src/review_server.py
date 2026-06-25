@@ -371,7 +371,9 @@ async def create_backup():
             shutil.copy2(YAML_PATH, f"{YAML_PATH}.bak")
         return {"status": "success", "message": "Backup created successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create backup: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create backup: {str(e)}"
+        )
 
 
 @app.post("/api/rollback")
@@ -384,7 +386,9 @@ async def rollback_backup():
     yaml_bak = f"{YAML_PATH}.bak" if YAML_PATH else None
 
     if not os.path.exists(novel_bak):
-        raise HTTPException(status_code=404, detail="Backup file not found. Nothing to rollback.")
+        raise HTTPException(
+            status_code=404, detail="Backup file not found. Nothing to rollback."
+        )
 
     try:
         # Restore novel file
@@ -401,7 +405,12 @@ async def rollback_backup():
                     f["apply_status"] = None
                     f["apply_result"] = None
                 with open(YAML_PATH, "w", encoding="utf-8") as f:
-                    yaml.dump({"findings": findings}, f, allow_unicode=True, default_flow_style=False)
+                    yaml.dump(
+                        {"findings": findings},
+                        f,
+                        allow_unicode=True,
+                        default_flow_style=False,
+                    )
 
         return {"status": "success", "message": "Rollback completed successfully."}
     except Exception as e:
