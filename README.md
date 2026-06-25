@@ -187,6 +187,15 @@ poetry install
    cp antigravity.yaml.example antigravity.yaml
    ```
 2. [antigravity.yaml](file:///home/sshioyama/workspace/novel_tools/antigravity.yaml) を編集し、`folder_id` や `auth_file` のパスを自身の環境に合わせて設定してください。
+   - **主要キャラクター名の指定（任意）**:
+     別作品の執筆や校閲を行う際、設定資料ファイル（`data/sources/`）からの自動抽出に加え、明示的に文脈フィルタリング（`filter_context`）の辞書に含めたい主要キャラクターがある場合は、`project.novel.main_characters` にリストとして設定できます（自動抽出された名前とマージしてハイブリッドで使用されます）。
+     ```yaml
+     project:
+       novel:
+         main_characters:
+           - "キャラクター名A"
+           - "キャラクター名B"
+     ```
    > [!IMPORTANT]
    > [antigravity.yaml](file:///home/sshioyama/workspace/novel_tools/antigravity.yaml) には機密情報が含まれるため、Gitにはコミットしないよう `.gitignore` で設定されています。
 
