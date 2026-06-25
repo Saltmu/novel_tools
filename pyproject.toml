@@ -36,9 +36,7 @@ max-complexity = 15
 
 [tool.ruff.lint.per-file-ignores]
 "src/apply_findings.py" = ["C901", "PLR0912", "PLR0915"]
-"src/filter_context.py" = ["C901", "PLR0912", "PLR0915"]
 "src/integrate_findings.py" = ["C901", "PLR0912", "PLR0915"]
-"src/sync_gdrive.py" = ["PLR0912", "PLR0915"]
 
 [tool.mypy]
 python_version = "3.12"
