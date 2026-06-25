@@ -153,32 +153,10 @@ findings: []
         return None
 
 
-def integrate_findings_in_dir(output_dir, model):
+def _collect_raw_findings(output_dir: str) -> list[dict]:
     """
-    Integrates and resolves conflicts in parallel review findings.
-    Returns True on success, False on failure.
+    Locates and parses all finding YAML files in the given directory.
     """
-    if not os.path.exists(output_dir):
-        print(f"Error: Directory '{output_dir}' does not exist.", file=sys.stderr)
-        return False
-
-    basename = os.path.basename(os.path.abspath(output_dir))
-    formatted_txt_path = os.path.join(output_dir, f"{basename}_formatted.txt")
-    if not os.path.exists(formatted_txt_path):
-        # Fallback to 01_formatted.txt just in case of transition
-        fallback_path = os.path.join(output_dir, "01_formatted.txt")
-        if os.path.exists(fallback_path):
-            formatted_txt_path = fallback_path
-        else:
-            print(
-                f"Error: '{basename}_formatted.txt' not found in {output_dir}.",
-                file=sys.stderr,
-            )
-            return False
-
-    target_text = read_file(formatted_txt_path)
-
-    # Locate all finding YAML files
     yaml_files = []
     # 1. Check for integrated pipeline YAMLs
     integrated_yamls = ["02_logic_consistency.yaml", "03_style_expression.yaml"]
@@ -203,10 +181,6 @@ def integrate_findings_in_dir(output_dir, model):
             if os.path.exists(path):
                 yaml_files.append(path)
 
-    if not yaml_files:
-        print("No finding YAML files found to integrate.", file=sys.stderr)
-        return False
-
     print(f"Found {len(yaml_files)} YAML files to integrate.")
 
     all_findings = []
@@ -215,9 +189,54 @@ def integrate_findings_in_dir(output_dir, model):
         findings = parse_yaml_file(yf)
         print(f"  - {filename}: {len(findings)} findings")
         for f in findings:
-            # Tag the source file in description for reference
             f["_source_file"] = filename
             all_findings.append(f)
+
+    return all_findings
+
+
+def _fallback_merge(all_findings: list[dict]) -> str:
+    """
+    Performs mechanical fallback merging when LLM is unavailable.
+    """
+    merged_findings = []
+    for idx, f in enumerate(all_findings, 1):
+        f_copy = f.copy()
+        f_copy["id"] = f"INT-{idx:03d}"
+        if "_source_file" in f_copy:
+            del f_copy["_source_file"]
+        merged_findings.append(f_copy)
+    return yaml.dump(
+        {"findings": merged_findings}, allow_unicode=True, default_flow_style=False
+    )
+
+
+def integrate_findings_in_dir(output_dir, model):
+    """
+    Integrates and resolves conflicts in parallel review findings.
+    Returns True on success, False on failure.
+    """
+    if not os.path.exists(output_dir):
+        print(f"Error: Directory '{output_dir}' does not exist.", file=sys.stderr)
+        return False
+
+    basename = os.path.basename(os.path.abspath(output_dir))
+    formatted_txt_path = os.path.join(output_dir, f"{basename}_formatted.txt")
+    if not os.path.exists(formatted_txt_path):
+        fallback_path = os.path.join(output_dir, "01_formatted.txt")
+        if os.path.exists(fallback_path):
+            formatted_txt_path = fallback_path
+        else:
+            print(
+                f"Error: '{basename}_formatted.txt' not found in {output_dir}.",
+                file=sys.stderr,
+            )
+            return False
+
+    target_text = read_file(formatted_txt_path)
+
+    # Collect findings
+    all_findings = _collect_raw_findings(output_dir)
 
     if not all_findings:
         print("No findings to merge. Writing empty integrated findings.")
@@ -240,18 +259,7 @@ def integrate_findings_in_dir(output_dir, model):
 
     if not merged_yaml_content:
         print("Error: LLM integration failed. Performing mechanical fallback merging.")
-        # Simple mechanical merge without LLM (no conflict resolution)
-        merged_findings = []
-        for idx, f in enumerate(all_findings, 1):
-            f_copy = f.copy()
-            f_copy["id"] = f"INT-{idx:03d}"
-            # Remove helper key
-            if "_source_file" in f_copy:
-                del f_copy["_source_file"]
-            merged_findings.append(f_copy)
-        merged_yaml_content = yaml.dump(
-            {"findings": merged_findings}, allow_unicode=True, default_flow_style=False
-        )
+        merged_yaml_content = _fallback_merge(all_findings)
 
     # Write output
     integrated_yaml_path = os.path.join(output_dir, f"{basename}_findings.yaml")
