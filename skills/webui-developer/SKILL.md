@@ -37,8 +37,9 @@ category: "Development"
 
 ### 設計方針
 - **バックエンド**: Flask ([review_server.py](../../src/review_server.py)) によるAPI提供およびテンプレートのレンダリング。
-- **フロントエンド**: Vanilla HTML/JS/CSS を使用。[index.html](../../src/templates/index.html) をベースとし、[app.js](../../src/static/js/app.js) が画面（[views/*.html](../../src/templates/views/)）やコンポーネント（[components/*.html](../../src/templates/components/)）を動的に読み込んで制御するSPA（シングルページアプリケーション）ライクな構成。
-- **状態管理と通信**: APIとのやり取りは `fetch` による非同期通信で行い、画面状態や設定パラメータは `localStorage` に保存・復元する。
+- **フロントエンド**: Vanilla HTML/JS/CSS と **ESModules (`type="module"`)** を使用。
+  [index.html](../../src/templates/index.html) をベースとし、[app.js](../../src/static/js/app.js) をエントリーポイントとして、状態管理、共通ユーティリティ、各画面のロジックを分割されたモジュールから読み込むSPA（シングルページアプリケーション）ライクな構成。
+- **状態管理と通信**: 状態は [state.js](../../src/static/js/state.js) 内の共有オブジェクトで一元管理し、APIとのやり取りは `fetch` による非同期通信で行う。設定パラメータなどは `localStorage` に適宜保存・復元する。
 
 ### ディレクトリ構造と各ファイルの役割
 
@@ -55,10 +56,19 @@ category: "Development"
   - [review.html](../../src/templates/views/review.html): レビュー指摘結果の確認、変更内容の適用・個別差分確認画面。
   - [sync.html](../../src/templates/views/sync.html): Google Driveや外部リポジトリとの同期設定画面。
   - [write.html](../../src/templates/views/write.html): AI（Claude等）を活用した小説執筆（生成）設定・実行画面。
-- **アセット**:
-  - [style.css](../../src/static/css/style.css): UI全体のスタイル定義。カラーパレット、レスポンシブレイアウト、ローディングアニメーション等の共通スタイル。
-  - [app.js](../../src/static/js/app.js): フロントエンドの全ロジック。画面遷移（ルーティング）、非同期API呼び出し、ローディングUI制御、エラーハンドリング、パラメータの永続化および復元。
+- **アセット (CSS/JS)**:
+  - [style.css](../../src/static/css/style.css): UI全体のスタイル定義。カラーパレット、レスポンシブレイアウト等の共通スタイル。
+  - [app.js](../../src/static/js/app.js): フロントエンドのエントリーポイント。ハッシュルーティング制御、各モジュールのインポートと `window` オブジェクトへのグローバルエクスポート処理。
+  - [state.js](../../src/static/js/state.js): 状態（パラメータや小説本文、指摘リスト等）の一元管理。
+  - [utils.js](../../src/static/js/utils.js): UIトースト、モーダル、ストリーミングログ監視等の共通UI・APIユーティリティ。
+  - **`views/` (各画面のコントローラ)**:
+    - [dashboard.js](../../src/static/js/views/dashboard.js) / [editor.js](../../src/static/js/views/editor.js) / [sync.js](../../src/static/js/views/sync.js) / [write.js](../../src/static/js/views/write.js) / [review.js](../../src/static/js/views/review.js): 各ビュー固有のイベント処理やAPI通信、データ描画ロジック。
 
 ## 3. 開発・修正時の注意点
-- 新しい画面を追加する場合は、[views/](../../src/templates/views/) 配下にHTMLテンプレートを作成し、[app.js](../../src/static/js/app.js) のルーティング（`routes`）および初期化処理に組み込んでください。
-- バックエンドへの非同期リクエスト中は、必ず画面全体または対象エリアにローディング表示（スピナー等）を表示し、送信ボタン等のインタラクティブ要素を `disabled` にして重複操作を防止してください。
+- **画面追加の手順**:
+  - 新しい画面を追加する場合は、[views/](../../src/templates/views/) 配下にHTMLテンプレートを作成し、必要に応じて対応するJSロジックを `views/` 内に作成した上で、[app.js](../../src/static/js/app.js) のルーティング（`handleRouting`）や初期化処理に組み込んでください。
+  - HTML側の `onclick` や `onchange` などから呼び出す必要がある関数は、必ず [app.js](../../src/static/js/app.js) にて `window` オブジェクトへエクスポート（グローバル公開）してください。
+- **状態管理の遵守**:
+  - 画面間で共有する状態を追加・変更する場合は、直接グローバル変数として定義するのではなく、必ず [state.js](../../src/static/js/state.js) の `state` オブジェクトを経由してアクセスしてください。
+- **非同期操作のブロック**:
+  - バックエンドへの非同期リクエスト中（AI執筆や同期等のプロセス実行中）は、必ず画面全体または対象エリアにローディング表示（スピナー等）を表示し、送信ボタン等のインタラクティブ要素を `disabled` にして重複操作を防止してください。
