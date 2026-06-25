@@ -214,11 +214,10 @@ def split_scenes(plot_content):
                 )
             current_scene_title = match.group(1)
             current_scene_lines = []
+        elif not has_started_scenes:
+            common_header.append(line)
         else:
-            if not has_started_scenes:
-                common_header.append(line)
-            else:
-                current_scene_lines.append(line)
+            current_scene_lines.append(line)
 
     if current_scene_title:
         scenes.append((current_scene_title, "\n".join(current_scene_lines).strip()))
