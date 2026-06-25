@@ -37,29 +37,7 @@ def extract_entities_from_sources(sources_dir):
         return entities
 
     # Add main characters from project config
-    if writer_helper:
-        main_chars = writer_helper.get_novel_setting(
-            "main_characters",
-            [
-                "アルフ",
-                "ミーナ",
-                "エイラ",
-                "バスィム",
-                "ザルコス",
-                "ナディール",
-                "レフ",
-            ],
-        )
-    else:
-        main_chars = [
-            "アルフ",
-            "ミーナ",
-            "エイラ",
-            "バスィム",
-            "ザルコス",
-            "ナディール",
-            "レフ",
-        ]
+    main_chars = writer_helper.get_novel_setting("main_characters", [])
     entities.update(main_chars)
 
     ruby_pattern = re.compile(r"([一-龠ぁ-んァ-ヴー]{2,15})（([ァ-ヴーa-zA-Z\s・]+)）")

@@ -2,6 +2,11 @@ version: "1.0"
 project:
   name: "novel-tools-system"
   description: "小説の整合性と世界観をチェックするエージェント環境"
+  novel:
+    # 作品ごとの主要キャラクター名のリスト（自動抽出を補完するためにマージされます）
+    main_characters:
+      - "キャラクターA"
+      - "キャラクターB"
 
 # 使用するAIモデルや基本動作の設定
 agent:
