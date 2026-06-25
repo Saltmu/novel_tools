@@ -414,21 +414,20 @@ async def rollback_backup(file: str = Query(..., description="Novel filename")):
         # Restore YAML file if backup exists
         if yaml_bak and os.path.exists(yaml_bak):
             shutil.copy2(yaml_bak, yaml_path)
-        else:
-            if yaml_path and os.path.exists(yaml_path):
-                with open(yaml_path, encoding="utf-8") as f:
-                    data = yaml.safe_load(f) or {}
-                findings = data.get("findings", [])
-                for f in findings:
-                    f["apply_status"] = None
-                    f["apply_result"] = None
-                with open(yaml_path, "w", encoding="utf-8") as f:
-                    yaml.dump(
-                        {"findings": findings},
-                        f,
-                        allow_unicode=True,
-                        default_flow_style=False,
-                    )
+        elif yaml_path and os.path.exists(yaml_path):
+            with open(yaml_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            findings = data.get("findings", [])
+            for f in findings:
+                f["apply_status"] = None
+                f["apply_result"] = None
+            with open(yaml_path, "w", encoding="utf-8") as f:
+                yaml.dump(
+                    {"findings": findings},
+                    f,
+                    allow_unicode=True,
+                    default_flow_style=False,
+                )
 
         return {"status": "success", "message": "Rollback completed successfully."}
     except Exception as e:

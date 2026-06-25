@@ -291,20 +291,17 @@ def main():
     if is_rereview:
         archive_previous_review(output_dir, basename)
         print(f"[INFO] Re-reviewing existing formatted draft: {formatted_draft}")
+    elif not os.path.exists(formatted_draft):
+        try:
+            run_formatter(str(target_path), formatted_draft)
+            print(f"[OK] Format completed: {formatted_draft}\n")
+        except Exception as e:
+            print(f"[ERROR] Formatting failed: {e}", file=sys.stderr)
+            sys.exit(1)
     else:
-        # Only run formatter if we don't have findings yet (first review)
-        # OR if formatted_draft doesn't exist
-        if not os.path.exists(formatted_draft):
-            try:
-                run_formatter(str(target_path), formatted_draft)
-                print(f"[OK] Format completed: {formatted_draft}\n")
-            except Exception as e:
-                print(f"[ERROR] Formatting failed: {e}", file=sys.stderr)
-                sys.exit(1)
-        else:
-            print(
-                f"[INFO] Formatted draft already exists. Skipping formatting: {formatted_draft}"
-            )
+        print(
+            f"[INFO] Formatted draft already exists. Skipping formatting: {formatted_draft}"
+        )
 
     # Step 2: Run Context Filter
     filtered_context = os.path.join(output_dir, "01_filtered_context.txt")

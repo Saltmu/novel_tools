@@ -28,8 +28,20 @@ target-version = "py312"
 line-length = 88
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
-ignore = ["E501", "B007", "B904"]
+select = ["E", "F", "I", "UP", "B", "C90", "PLR"]
+ignore = ["E501", "B007", "B904", "PLR0913", "PLR2004"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.per-file-ignores]
+# 既存の複雑なレガシーコードのリファクタリング猶予
+"skills/novel_writer_antigravitycli/writer_cli.py" = ["C901", "PLR0912", "PLR0915"]
+"src/apply_findings.py" = ["C901", "PLR0912", "PLR0915"]
+"src/filter_context.py" = ["C901", "PLR0912", "PLR0915"]
+"src/integrate_findings.py" = ["C901", "PLR0912", "PLR0915"]
+"src/run_review_pipeline.py" = ["PLR0912", "PLR0915"]
+"src/sync_gdrive.py" = ["PLR0912", "PLR0915"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -45,6 +57,7 @@ run-review = "src.run_review_pipeline:main"
 review-server = "src.review_server:main"
 apply-findings = "src.apply_findings:main"
 sync-gdrive = "src.sync_gdrive:main"
+detect-bloat = "src.utils.detect_bloat:main"
 
 [build-system]
 requires = ["poetry-core"]

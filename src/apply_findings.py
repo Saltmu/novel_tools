@@ -245,6 +245,22 @@ def main():
     args = parser.parse_args()
 
     output_dir = args.dir
+    if output_dir:
+        abs_output_dir = os.path.abspath(output_dir)
+        norm_path = os.path.normpath(abs_output_dir)
+        path_parts = norm_path.split(os.sep)
+        is_source_path = False
+        for i in range(len(path_parts) - 1):
+            if path_parts[i] == "data" and path_parts[i + 1] == "sources":
+                is_source_path = True
+                break
+        if is_source_path:
+            print(
+                "Error: Writing to source files in data/sources/ is strictly prohibited by AI guardrails.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
     if not os.path.exists(output_dir):
         print(f"Error: Directory '{output_dir}' does not exist.", file=sys.stderr)
         sys.exit(1)

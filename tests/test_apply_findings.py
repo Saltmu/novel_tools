@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import yaml
 
 from src.apply_findings import (
@@ -152,3 +153,24 @@ def test_main_block_merging_auto_llm(tmp_path):
     assert "LLM" in findings_result["INT-001"]["apply_result"]
     assert findings_result["INT-002"]["apply_status"] == "success"
     assert "LLM" in findings_result["INT-002"]["apply_result"]
+
+
+def test_main_prevents_writing_to_sources(tmp_path):
+    # パス名に "data/sources" が含まれるような tmp_path のサブディレクトリを作る
+    sources_dir = tmp_path / "data" / "sources" / "volume1"
+    sources_dir.mkdir(parents=True, exist_ok=True)
+
+    formatted_txt_path = sources_dir / "volume1_formatted.txt"
+    formatted_txt_path.write_text("本文", encoding="utf-8")
+
+    findings_yaml_path = sources_dir / "volume1_findings.yaml"
+    findings_yaml_path.write_text("findings: []", encoding="utf-8")
+
+    # コマンドライン引数をシミュレートして main を呼び出す
+    test_args = ["apply_findings.py", "--dir", str(sources_dir), "--auto"]
+    with patch("sys.argv", test_args):
+        with pytest.raises(SystemExit) as excinfo:
+            main()
+
+        # 終了ステータスが 1 であることを検証
+        assert excinfo.value.code == 1
