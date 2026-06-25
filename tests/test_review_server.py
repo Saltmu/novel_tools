@@ -35,6 +35,7 @@ def test_list_available_models():
 def test_save_novel():
     import os
     import tempfile
+
     import src.review_server as rs
     
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
@@ -57,6 +58,7 @@ def test_save_novel():
 def test_backup_and_rollback():
     import os
     import tempfile
+
     import src.review_server as rs
     
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
