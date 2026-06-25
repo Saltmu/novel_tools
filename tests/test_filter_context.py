@@ -1,11 +1,12 @@
 import os
 import unittest.mock
+
+from src import filter_context
 from src.filter_context import (
     extract_keywords_from_novel,
     is_basic_context_file,
     split_into_sections,
 )
-from src import filter_context
 
 
 def test_extract_keywords_from_novel():
