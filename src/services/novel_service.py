@@ -120,7 +120,7 @@ def build_writer_cmd(params: Any) -> list[str]:
         "run",
         "python",
         "-u",
-        "skills/novel_writer_antigravitycli/writer_cli.py",
+        "skills/novel-writer-antigravitycli/writer_cli.py",
         "--episode",
         params.episode,
     ]
