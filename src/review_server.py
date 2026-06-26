@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.utils import project_config as writer_helper
+from src.utils import project_paths
 from src.utils.ai_client import AgyClient
 
 app = FastAPI(title="Novel Studio - AI Writing & Review Portal")
@@ -68,33 +69,19 @@ def resolve_paths(novel_name: str) -> tuple[str, str]:
     safe_name = os.path.basename(novel_name)
     basename = Path(safe_name).stem
 
-    # Resolve novel path
+    output_dir = project_paths.get_output_dir(basename)
     formatted_path = os.path.abspath(
-        os.path.join("novel_check_results", basename, f"{basename}_formatted.txt")
+        project_paths.resolve_formatted_draft_path(output_dir, basename)
     )
-    if not os.path.exists(formatted_path):
-        fallback_path = os.path.abspath(
-            os.path.join("novel_check_results", basename, "01_formatted.txt")
-        )
-        if os.path.exists(fallback_path):
-            formatted_path = fallback_path
 
     if os.path.exists(formatted_path):
         novel_path = formatted_path
     else:
         novel_path = os.path.abspath(os.path.join("novels", safe_name))
 
-    # Resolve YAML path
     yaml_path = os.path.abspath(
-        os.path.join("novel_check_results", basename, f"{basename}_findings.yaml")
+        project_paths.resolve_findings_yaml_path(output_dir, basename)
     )
-    if not os.path.exists(yaml_path):
-        fallback_yaml = os.path.abspath(
-            os.path.join("novel_check_results", basename, "00_integrated_findings.yaml")
-        )
-        if os.path.exists(fallback_yaml):
-            yaml_path = fallback_yaml
-
     return novel_path, yaml_path
 
 
