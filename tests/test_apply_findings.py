@@ -268,7 +268,6 @@ def test_main_default_to_interactive(tmp_path):
 
 
 def test_save_outputs_yaml_exception(tmp_path):
-
     stats = (0, 0, 0)
     real_open = builtins.open
 
