@@ -27,11 +27,8 @@ shared:
 
 skills:
   # === 1. Writing (執筆) ===
-  # 小説執筆：設定やプロットに基づいて執筆
-  - path: "./skills/novel-writer"
-
   # 小説執筆 (Antigravity CLI版)：Antigravity CLIを利用した小説執筆
-  - path: "./skills/novel_writer_antigravitycli"
+  - path: "./skills/novel-writer-antigravitycli"
 
   # === 2. Core Verification (基本検証) ===
   # 整合性と世界観、伏線の統合レビュー
