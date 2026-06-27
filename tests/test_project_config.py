@@ -2,6 +2,7 @@ import os
 from unittest.mock import mock_open, patch
 
 from src.utils.project_config import (
+    get_gdrive_config,
     get_novel_setting,
     load_project_config,
     natural_sort_key,
@@ -98,3 +99,53 @@ def test_resolve_novel_file_by_pattern(tmp_path):
         res = resolve_novel_file_by_pattern("plot", "plot_default.txt")
         mock_resolve.assert_called_once_with("data/sources/plot_*.txt", None)
         assert res == "data/sources/plot_2.txt"
+
+
+def test_get_gdrive_config_toplevel():
+    """google_drive: トップレベルキーから設定を取得できる"""
+    config = {
+        "google_drive": {
+            "type": "google-drive",
+            "folder_id": "test_folder_id",
+            "auth_file": "./credentials/test.json",
+        }
+    }
+    folder_id, auth_file = get_gdrive_config(config)
+    assert folder_id == "test_folder_id"
+    assert auth_file == "./credentials/test.json"
+
+
+def test_get_gdrive_config_legacy_skills_sources():
+    """後方互換：skills[].sources[] から設定を取得できる"""
+    config = {
+        "skills": [
+            {
+                "path": "./skills/consistency-checker",
+                "sources": [
+                    {
+                        "type": "google-drive",
+                        "folder_id": "legacy_folder_id",
+                        "auth_file": "./credentials/legacy.json",
+                    }
+                ],
+            }
+        ]
+    }
+    folder_id, auth_file = get_gdrive_config(config)
+    assert folder_id == "legacy_folder_id"
+    assert auth_file == "./credentials/legacy.json"
+
+
+def test_get_gdrive_config_not_found():
+    """Google Drive 設定が存在しない場合は (None, None) を返す"""
+    config = {"skills": [{"path": "./skills/novel-formatter"}]}
+    folder_id, auth_file = get_gdrive_config(config)
+    assert folder_id is None
+    assert auth_file is None
+
+
+def test_get_gdrive_config_empty():
+    """設定が空の場合は (None, None) を返す"""
+    folder_id, auth_file = get_gdrive_config({})
+    assert folder_id is None
+    assert auth_file is None
