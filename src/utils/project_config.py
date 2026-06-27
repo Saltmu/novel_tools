@@ -42,15 +42,28 @@ def load_project_config(config_path: str | None = None):
 
 
 def get_gdrive_config(config: dict | None = None) -> tuple[str | None, str | None]:
-    """Extracts folder_id and auth_file for Google Drive source from config."""
+    """Extracts folder_id and auth_file for Google Drive source from config.
+
+    Looks for configuration in the following order:
+    1. Top-level ``google_drive:`` key (preferred)
+    2. ``skills[].sources[]`` with ``type: google-drive`` (legacy)
+    """
     cfg = config if config is not None else load_project_config()
-    if not cfg or "skills" not in cfg:
+    if not cfg:
         return None, None
-    for skill in cfg["skills"]:
+
+    # 1. トップレベルの google_drive: セクションを優先参照
+    gdrive = cfg.get("google_drive")
+    if gdrive and gdrive.get("type") == "google-drive":
+        return gdrive.get("folder_id"), gdrive.get("auth_file")
+
+    # 2. 後方互換：skills[].sources[] から検索
+    for skill in cfg.get("skills", []):
         if "sources" in skill:
             for source in skill["sources"]:
                 if source.get("type") == "google-drive":
                     return source.get("folder_id"), source.get("auth_file")
+
     return None, None
 
 
