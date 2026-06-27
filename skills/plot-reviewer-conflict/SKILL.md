@@ -1,5 +1,5 @@
 ---
-name: "Plot-Conflict-Analyzer"
+name: "plot-reviewer-conflict"
 description: "各シーン・章の目標・障害・葛藤・結果（GMCO）を検証し、「何も起きていない」停滞シーンや動機の弱いシーンを検出する（プロット設計段階用）"
 version: "1.0.0"
 category: "Plot-Review"

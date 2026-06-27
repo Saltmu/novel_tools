@@ -1,5 +1,5 @@
 ---
-name: "Plot-Structure-Reviewer"
+name: "plot-reviewer-structure"
 description: "プロット全体の物語構造（三幕構成・感情の山場・カタルシス）を評価し、構造的な弱点を指摘する（プロット設計段階用）"
 version: "1.0.0"
 category: "Plot-Review"
