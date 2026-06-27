@@ -19,8 +19,6 @@ novel_tools/
 
 ### 1. 執筆・整形（Writing & Formatting）
 
-- **[Novel-Writer](file:///home/sshioyama/workspace/novel_tools/skills/novel-writer/)** [`novel-writer`]
-  「重天の調律師」シリーズの専属作家スキル。設定資料・キャラクター概要・プロットに基づき、執筆ポリシーを厳守して小説を生成します。章単位の執筆指示を受け、エピソードごとに執筆して `novels/` フォルダに保存します。
 - **[Novel-Writer-AntigravityCLI](file:///home/sshioyama/workspace/novel_tools/skills/novel-writer-antigravitycli/)** [`novel-writer-antigravitycli`]
   Antigravity CLIツール（agy）経由でローカルからAPIを呼び出し、コンテキスト制限を回避しつつ執筆を行う、CLI環境に最適化された小説執筆スキル。
 - **[Novel-Formatter](file:///home/sshioyama/workspace/novel_tools/skills/novel-formatter/)** [`novel-formatter`]
