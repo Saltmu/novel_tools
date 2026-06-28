@@ -203,8 +203,15 @@ def test_find_target_line_stripped_match():
 
 def test_find_target_line_fuzzy_match():
     # Test matching where spaces, indents, or newline types might differ slightly
-    text_lines = ["Chapter 1\n", "  This is a   long text\n", "with different spacing.\n"]
-    finding = {"original": "This is a long text\nwith different spacing.", "location": "2"}
+    text_lines = [
+        "Chapter 1\n",
+        "  This is a   long text\n",
+        "with different spacing.\n",
+    ]
+    finding = {
+        "original": "This is a long text\nwith different spacing.",
+        "location": "2",
+    }
     assert find_target_line(text_lines, finding) == 2
 
 

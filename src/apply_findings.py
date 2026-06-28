@@ -78,6 +78,7 @@ def find_target_line(text_lines, finding):
 
     # Fuzzy match: ignore all whitespace/newlines (normalise completely)
     import re
+
     def clean_spacing(text):
         return re.sub(r"\s+", "", text)
 
