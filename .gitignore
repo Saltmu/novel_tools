@@ -36,3 +36,7 @@ reviews/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# App Logs
+logs/
+

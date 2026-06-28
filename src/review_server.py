@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import os
 import webbrowser
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -9,8 +10,19 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
 from src.routes.api import router as api_router
+from src.utils.logger import get_logger
 
-app = FastAPI(title="Novel Studio - AI Writing & Review Portal")
+logger = get_logger("review_server")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Novel Studio Server is starting up.")
+    yield
+    logger.info("Novel Studio Server is shutting down.")
+
+
+app = FastAPI(title="Novel Studio - AI Writing & Review Portal", lifespan=lifespan)
 
 
 # Middleware to disable caching for static files to prevent stale browser cache
@@ -66,9 +78,12 @@ def main():
     app.state.initial_novel = initial_novel
 
     print("=== Novel Studio Server Running ===")
+    logger.info("=== Novel Studio Server Running ===")
     if initial_novel:
         print(f"Initial Novel: {initial_novel}")
+        logger.info(f"Initial Novel: {initial_novel}")
     print(f"URL  : http://localhost:{args.port}\n")
+    logger.info(f"URL  : http://localhost:{args.port}")
 
     # Start browser auto-opener
     loop = asyncio.new_event_loop()

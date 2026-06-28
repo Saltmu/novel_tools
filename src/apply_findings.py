@@ -9,6 +9,9 @@ from src.utils import project_paths
 from src.utils.ai_client import AgyClientError
 from src.utils.ai_task import BlockReplacementInput, BlockReplacementTask
 from src.utils.file_io import read_file
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def write_file(filepath, content):
@@ -141,15 +144,23 @@ def query_llm_for_block_replacement(context_lines, findings_in_block, model):
     try:
         result = task.execute(input_data)
         if result is None:
+            logger.warning("LLM output was rejected (too short or failed validation).")
             print(
                 "Warning: LLM output was rejected (too short or failed validation).",
                 file=sys.stderr,
             )
         return result
     except AgyClientError as e:
+        logger.error(
+            f"AgyClient failed with error during block replacement: {e}", exc_info=True
+        )
         print(f"Warning: AgyClient failed with error: {e}", file=sys.stderr)
         return None
     except Exception as e:
+        logger.error(
+            f"Unexpected error calling AgyClient during block replacement: {e}",
+            exc_info=True,
+        )
         print(f"Warning: Unexpected error calling AgyClient: {e}", file=sys.stderr)
         return None
 
@@ -220,6 +231,9 @@ def _validate_output_dir(output_dir: str) -> None:
                 is_source_path = True
                 break
         if is_source_path:
+            logger.error(
+                f"Writing to source files in {project_paths.DATA_SOURCES_DIR}/ is strictly prohibited by AI guardrails."
+            )
             print(
                 f"Error: Writing to source files in {project_paths.DATA_SOURCES_DIR}/ is strictly prohibited by AI guardrails.",
                 file=sys.stderr,
@@ -227,6 +241,7 @@ def _validate_output_dir(output_dir: str) -> None:
             sys.exit(1)
 
     if not os.path.exists(output_dir):
+        logger.error(f"Directory '{output_dir}' does not exist.")
         print(f"Error: Directory '{output_dir}' does not exist.", file=sys.stderr)
         sys.exit(1)
 
@@ -239,9 +254,11 @@ def _load_inputs(output_dir: str) -> tuple[str, str, list[str], list[dict], str]
     findings_yaml_path = project_paths.resolve_findings_yaml_path(output_dir, basename)
 
     if not os.path.exists(formatted_txt_path):
+        logger.error(f"'{formatted_txt_path}' not found.")
         print(f"Error: '{formatted_txt_path}' not found.", file=sys.stderr)
         sys.exit(1)
     if not os.path.exists(findings_yaml_path):
+        logger.error(f"'{findings_yaml_path}' not found.")
         print(f"Error: '{findings_yaml_path}' not found.", file=sys.stderr)
         sys.exit(1)
 
@@ -253,6 +270,7 @@ def _load_inputs(output_dir: str) -> tuple[str, str, list[str], list[dict], str]
             yaml_data = yaml.safe_load(f)
         findings = yaml_data.get("findings", []) if isinstance(yaml_data, dict) else []
     except Exception as e:
+        logger.error(f"Error parsing YAML '{findings_yaml_path}': {e}", exc_info=True)
         print(f"Error parsing YAML '{findings_yaml_path}': {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -500,6 +518,7 @@ def _save_outputs_and_print_summary(
 def main():
     args = _parse_args()
 
+    logger.info(f"Starting apply_findings for directory: {args.dir}")
     _validate_output_dir(args.dir)
 
     formatted_txt_path, findings_yaml_path, text_lines, findings, basename = (
@@ -507,16 +526,20 @@ def main():
     )
 
     if not findings:
+        logger.info("No findings to apply.")
         print("No findings to apply.")
         sys.exit(0)
 
     if not args.interactive and not args.accept_ids and not args.auto:
+        logger.warning("No mode specified. Defaulting to interactive mode.")
         print("Warning: No mode specified. Defaulting to interactive mode.")
         args.interactive = True
 
     active_findings = _determine_accepted_findings(findings, text_lines, args)
+    logger.info(f"Determined {len(active_findings)} active findings to apply.")
 
     groups = _group_findings(active_findings)
+    logger.info(f"Grouped active findings into {len(groups)} blocks.")
 
     applied_count, failed_count = _apply_grouped_findings(text_lines, groups, args)
 
@@ -525,6 +548,9 @@ def main():
 
     _save_outputs_and_print_summary(
         formatted_txt_path, findings_yaml_path, text_lines, findings, stats
+    )
+    logger.info(
+        f"Completed apply_findings. Stats: Applied={applied_count}, Skipped={skipped_count}, Failed={failed_count}"
     )
 
 

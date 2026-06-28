@@ -4,6 +4,8 @@ import threading
 import time
 from collections.abc import Callable
 
+from src.utils.logger import get_logger
+
 
 class AgyClientError(Exception):
     """Base exception for AgyClient errors."""
@@ -15,6 +17,9 @@ class AgyNotFoundError(AgyClientError):
     """Raised when the 'agy' CLI command is not found."""
 
     pass
+
+
+logger = get_logger(__name__)
 
 
 class AgyClient:
@@ -40,6 +45,9 @@ class AgyClient:
 
         If a callback is provided, the output is streamed line by line to the callback.
         """
+        logger.info(
+            f"Generating content using model: {self.model} (Prompt length: {len(prompt)})"
+        )
         cmd = ["agy", "-p", "", "--model", self.model]
 
         last_exception = None
@@ -52,14 +60,22 @@ class AgyClient:
                 else:
                     return self._generate_normal(cmd, prompt)
             except AgyNotFoundError as e:
-                # If CLI is not found, retrying will not help.
+                logger.error(f"Antigravity CLI (agy) not found: {e}", exc_info=True)
                 raise e
             except AgyClientError as e:
                 last_exception = e
                 if attempt < self.max_retries:
+                    logger.warning(
+                        f"Attempt {attempt + 1}/{self.max_retries + 1} failed: {e}. "
+                        f"Retrying in {delay:.1f}s..."
+                    )
                     time.sleep(delay)
                     delay *= 2
                 else:
+                    logger.error(
+                        f"Generation failed after {self.max_retries + 1} attempts. Final error: {e}",
+                        exc_info=True,
+                    )
                     raise e
 
         if last_exception:
@@ -78,11 +94,18 @@ class AgyClient:
             )
             stdout, stderr = process.communicate(input=prompt)
         except FileNotFoundError as e:
+            logger.error(
+                "Antigravity CLI (agy) executable not found in PATH.", exc_info=True
+            )
             raise AgyNotFoundError("Antigravity CLI (agy) not found.") from e
         except Exception as e:
+            logger.error(f"Unexpected error when calling agy: {e}", exc_info=True)
             raise AgyClientError(f"Unexpected error when calling agy: {str(e)}") from e
 
         if process.returncode != 0:
+            logger.error(
+                f"agy execution failed with return code {process.returncode}: {stderr}"
+            )
             raise AgyClientError(
                 f"agy error (exit code {process.returncode}): {stderr}"
             )
@@ -134,6 +157,9 @@ class AgyClient:
 
         stderr = process.stderr.read()
         if process.returncode != 0:
+            logger.error(
+                f"agy streaming execution failed with return code {process.returncode}: {stderr}"
+            )
             raise AgyClientError(
                 f"agy error (exit code {process.returncode}): {stderr}"
             )

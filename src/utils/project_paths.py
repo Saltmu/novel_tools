@@ -1,12 +1,16 @@
 import os
 
 # Project Directory Constants
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+
 NOVELS_DIR = "novels"
 DATA_DIR = "data"
 SOURCES_DIR = "sources"
 DATA_SOURCES_DIR = os.path.join(DATA_DIR, SOURCES_DIR)
 
 DEFAULT_RESULTS_DIR = "reviews"
+DEFAULT_LOGS_DIR = "logs"
 
 
 def get_output_dir(basename: str, results_dir: str = DEFAULT_RESULTS_DIR) -> str:
