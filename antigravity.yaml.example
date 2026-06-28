@@ -50,3 +50,12 @@ skills:
   # === 5. Development (開発) ===
   # WebUI（Novel Studioなど）のフロントエンド・バックエンド実装・修正
   - path: "./skills/webui-developer"
+
+# === 6. Logging (ログ設定) ===
+logging:
+  level: "INFO"
+  dir: "logs"
+  filename: "app.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+

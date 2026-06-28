@@ -13,8 +13,10 @@ from src.services import novel_service
 from src.utils import project_config as writer_helper
 from src.utils import project_paths
 from src.utils.ai_client import AgyClient
+from src.utils.logger import get_logger
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 class FindingItem(BaseModel):
@@ -93,7 +95,7 @@ async def list_available_models():
             models = default_models
         return {"models": models}
     except Exception as e:
-        print(f"Error fetching models: {e}")
+        logger.error(f"Error fetching models: {e}", exc_info=True)
         return {"models": default_models}
 
 
@@ -147,7 +149,7 @@ async def get_novel(file: str = Query(..., description="Novel filename")):
                 if data and "findings" in data:
                     findings = data["findings"]
         except Exception as e:
-            print(f"Error reading YAML findings: {e}")
+            logger.error(f"Error reading YAML findings: {e}", exc_info=True)
 
     # Read backup list
     backups = []
@@ -182,6 +184,9 @@ async def save_novel(req: SaveNovelRequest):
 
     # Check protection
     if f"{project_paths.DATA_SOURCES_DIR}/" in novel_path.replace("\\", "/"):
+        logger.error(
+            f"Violation: Attempt to save to source files in {project_paths.DATA_SOURCES_DIR}/"
+        )
         raise HTTPException(
             status_code=403,
             detail=f"Writing to source files in {project_paths.DATA_SOURCES_DIR}/ is strictly prohibited by AI guardrails.",
@@ -195,8 +200,10 @@ async def save_novel(req: SaveNovelRequest):
 
         with open(novel_path, "w", encoding="utf-8") as f:
             f.write(req.content)
+        logger.info(f"Successfully saved novel file: {req.novel_name}")
         return {"status": "success", "message": "Novel saved successfully."}
     except Exception as e:
+        logger.error(f"Failed to save novel '{req.novel_name}': {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to save novel: {str(e)}")
 
 
@@ -227,8 +234,12 @@ async def save_findings(req: SaveFindingsRequest):
                 allow_unicode=True,
                 default_flow_style=False,
             )
+        logger.info(f"Successfully saved findings YAML: {req.novel_name}")
         return {"status": "success", "message": "Findings saved successfully."}
     except Exception as e:
+        logger.error(
+            f"Failed to save findings YAML '{req.novel_name}': {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=500, detail=f"Failed to save findings: {str(e)}"
         )
@@ -246,8 +257,10 @@ async def create_backup(file: str = Query(..., description="Novel filename")):
             shutil.copy2(novel_path, f"{novel_path}.bak")
         if yaml_path and os.path.exists(yaml_path):
             shutil.copy2(yaml_path, f"{yaml_path}.bak")
+        logger.info(f"Created backup for {file}")
         return {"status": "success", "message": "Backup created successfully."}
     except Exception as e:
+        logger.error(f"Failed to create backup for {file}: {e}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Failed to create backup: {str(e)}"
         )
@@ -299,8 +312,10 @@ async def stream_apply(file: str = Query(..., description="Novel filename")):
             "--auto",
         ]
 
+        logger.info(f"Streaming apply_findings for novel: {file}")
         return novel_service.stream_process_output(cmd)
     except Exception as e:
+        logger.error(f"Error applying changes for novel '{file}': {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error applying changes: {str(e)}")
 
 
@@ -374,7 +389,7 @@ async def get_plot(
                 if data and "findings" in data:
                     findings = data["findings"]
         except Exception as e:
-            print(f"Error reading plot YAML findings: {e}")
+            logger.error(f"Error reading plot YAML findings: {e}", exc_info=True)
 
     return {
         "plot_name": safe_file,
