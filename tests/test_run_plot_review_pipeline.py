@@ -1,6 +1,4 @@
 import os
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -105,9 +103,7 @@ def test_main_success(tmp_path):
         str(tmp_path / "out"),
     ]
 
-    mock_run_skill = MagicMock(
-        return_value=("plot-reviewer-conflict", True, "success")
-    )
+    mock_run_skill = MagicMock(return_value=("plot-reviewer-conflict", True, "success"))
     mock_integrate = MagicMock(return_value=True)
 
     with patch("sys.argv", test_args):
