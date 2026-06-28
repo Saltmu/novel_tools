@@ -1,7 +1,6 @@
 import os
 import signal
 import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -232,6 +231,35 @@ def test_novel_service_rollback_backup_exception(tmp_path):
         with pytest.raises(Exception) as excinfo:
             novel_service.rollback_backup(str(novel_path), str(yaml_path))
         assert excinfo.value.status_code == 500
+
+
+def test_novel_service_rollback_backup_versioned(tmp_path):
+    # Setup paths
+    novels_dir = tmp_path / "novels"
+    os.makedirs(novels_dir, exist_ok=True)
+
+    novel_path = novels_dir / "novel.txt"
+    yaml_path = tmp_path / "novel_findings.yaml"
+
+    # Setup history/v1/
+    history_dir = tmp_path / "history" / "v1"
+    os.makedirs(history_dir, exist_ok=True)
+
+    bak_novel = history_dir / "novel.txt"
+    bak_yaml = history_dir / "novel_findings.yaml"
+
+    bak_novel.write_text("v1 novel original content", encoding="utf-8")
+    bak_yaml.write_text("findings: []", encoding="utf-8")
+
+    with patch("src.utils.project_paths.NOVELS_DIR", str(novels_dir)):
+        # Run versioned rollback
+        res = novel_service.rollback_backup(
+            str(novel_path), str(yaml_path), version="v1"
+        )
+        assert res["status"] == "success"
+
+        assert novel_path.read_text(encoding="utf-8") == "v1 novel original content"
+        assert yaml_path.read_text(encoding="utf-8") == "findings: []"
 
 
 def test_novel_service_build_writer_cmd():
@@ -552,21 +580,15 @@ def test_routes_api_get_write_prompt():
 
 
 def test_routes_api_list_plots(tmp_path):
-    sources_dir = Path("data/sources")
-    os.makedirs(sources_dir, exist_ok=True)
+    with patch("src.utils.project_paths.DATA_SOURCES_DIR", str(tmp_path)):
+        mock_plot = tmp_path / "04_1_01_プロット.txt"
+        mock_plot.write_text("プロットの中身", encoding="utf-8")
 
-    mock_plot = sources_dir / "04_1_01_プロット.txt"
-    mock_plot.write_text("プロットの中身", encoding="utf-8")
-
-    try:
         response = client.get("/api/plots")
         assert response.status_code == 200
         data = response.json()
         assert "plots" in data
         assert any(p["name"] == "04_1_01_プロット.txt" for p in data["plots"])
-    finally:
-        if mock_plot.exists():
-            mock_plot.unlink()
 
 
 def test_routes_api_get_plot_not_found():
@@ -574,23 +596,17 @@ def test_routes_api_get_plot_not_found():
     assert response.status_code == 404
 
 
-def test_routes_api_get_plot_success():
-    sources_dir = Path("data/sources")
-    os.makedirs(sources_dir, exist_ok=True)
+def test_routes_api_get_plot_success(tmp_path):
+    with patch("src.utils.project_paths.DATA_SOURCES_DIR", str(tmp_path)):
+        mock_plot = tmp_path / "test_get_plot.txt"
+        mock_plot.write_text("プロットテスト本文", encoding="utf-8")
 
-    mock_plot = sources_dir / "test_get_plot.txt"
-    mock_plot.write_text("プロットテスト本文", encoding="utf-8")
-
-    try:
         response = client.get("/api/plot?file=test_get_plot.txt")
         assert response.status_code == 200
         data = response.json()
         assert data["plot_name"] == "test_get_plot.txt"
         assert data["content"] == "プロットテスト本文"
         assert "findings" in data
-    finally:
-        if mock_plot.exists():
-            mock_plot.unlink()
 
 
 def test_routes_api_stream_plot_review_not_found():
@@ -598,14 +614,11 @@ def test_routes_api_stream_plot_review_not_found():
     assert response.status_code == 404
 
 
-def test_routes_api_stream_plot_review_success():
-    sources_dir = Path("data/sources")
-    os.makedirs(sources_dir, exist_ok=True)
+def test_routes_api_stream_plot_review_success(tmp_path):
+    with patch("src.utils.project_paths.DATA_SOURCES_DIR", str(tmp_path)):
+        mock_plot = tmp_path / "test_stream_plot.txt"
+        mock_plot.write_text("プロットテスト本文", encoding="utf-8")
 
-    mock_plot = sources_dir / "test_stream_plot.txt"
-    mock_plot.write_text("プロットテスト本文", encoding="utf-8")
-
-    try:
         with patch("src.services.novel_service.stream_process_output") as mock_stream:
             mock_stream.return_value = StreamingResponse(iter([b"data: success\n\n"]))
             response = client.get(
@@ -613,6 +626,3 @@ def test_routes_api_stream_plot_review_success():
             )
             assert response.status_code == 200
             assert mock_stream.called
-    finally:
-        if mock_plot.exists():
-            mock_plot.unlink()

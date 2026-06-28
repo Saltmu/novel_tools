@@ -53,6 +53,13 @@ def find_target_line(text_lines, finding):
     if not original:
         return None
 
+    # Check using full text (handles multi-line matching)
+    raw_text = "".join(text_lines)
+    if original in raw_text:
+        offset = raw_text.find(original)
+        line_no = raw_text[:offset].count("\n") + 1
+        return line_no
+
     location_str = finding.get("location", "")
     line_no = parse_line_number(location_str)
 
@@ -60,11 +67,11 @@ def find_target_line(text_lines, finding):
         target_idx = line_no - 1
         for idx in range(target_idx - 5, target_idx + 6):
             if 0 <= idx < len(text_lines):
-                if original in text_lines[idx]:
+                if original in text_lines[idx].strip():
                     return idx + 1
 
     for idx, line in enumerate(text_lines):
-        if original in line:
+        if original in line.strip():
             return idx + 1
 
     return None
