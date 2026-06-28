@@ -25,7 +25,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Novel Studio - AI Writing & Review Portal", lifespan=lifespan)
 
 
-
 # Middleware to disable caching for static files to prevent stale browser cache
 @app.middleware("http")
 async def disable_static_cache(request: Request, call_next):
