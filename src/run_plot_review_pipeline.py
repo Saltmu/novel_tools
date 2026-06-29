@@ -11,6 +11,9 @@ from src.utils import project_paths
 from src.utils.ai_client import AgyClientError
 from src.utils.ai_task import ReviewSkillInput, ReviewSkillTask
 from src.utils.file_io import read_file
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def archive_previous_plot_review(output_dir, basename):
@@ -38,8 +41,8 @@ def archive_previous_plot_review(output_dir, basename):
     next_version = max(existing_versions) + 1 if existing_versions else 1
     v_prefix = f"v{next_version}"
 
-    print(
-        f"\n[Archive] Existing plot review findings found. Archiving to history/{v_prefix}_{basename}_..."
+    logger.info(
+        f"Existing plot review findings found. Archiving to history/{v_prefix}_{basename}_..."
     )
 
     # Files to archive
@@ -53,7 +56,7 @@ def archive_previous_plot_review(output_dir, basename):
         dest_path = os.path.join(history_dir, dest_name)
         if os.path.exists(src_path):
             shutil.copy2(src_path, dest_path)
-            print(f"  Archived: {src_name} -> history/{dest_name}")
+            logger.info(f"Archived: {src_name} -> history/{dest_name}")
 
     # Clean up current findings and report so they are regenerated
     for src_path in [
@@ -66,13 +69,13 @@ def archive_previous_plot_review(output_dir, basename):
 
 def run_single_review_skill(skill_name, target_text, output_file, model, output_dir):
     """Executes a single review skill via ReviewSkillTask."""
-    print(f"[{skill_name}] Preparing review prompt...")
+    logger.info(f"[{skill_name}] Preparing review prompt...")
     task = ReviewSkillTask(model=model)
     input_data = ReviewSkillInput(
         skill_name=skill_name, target_text=target_text, output_dir=output_dir
     )
 
-    print(f"[{skill_name}] Running AgyClient ({model})...")
+    logger.info(f"[{skill_name}] Running AgyClient ({model})...")
     try:
         yaml_content = task.execute(input_data)
 
@@ -112,10 +115,10 @@ def main():
 
     os.makedirs(output_dir, exist_ok=True)
 
-    print("=== Plot Review Pipeline Starting ===")
-    print(f"Target Plot: {target_path}")
-    print(f"Output Directory: {output_dir}")
-    print(f"Model: {args.model}\n")
+    logger.info("=== Plot Review Pipeline Starting ===")
+    logger.info(f"Target Plot: {target_path}")
+    logger.info(f"Output Directory: {output_dir}")
+    logger.info(f"Model: {args.model}")
 
     # Step 1: Archive previous review if exists
     archive_previous_plot_review(output_dir, basename)
@@ -123,9 +126,7 @@ def main():
     # Read plot text
     target_text = read_file(str(target_path))
     if not target_text:
-        print(
-            f"[ERROR] Could not read target plot file: {target_path}", file=sys.stderr
-        )
+        logger.error(f"Could not read target plot file: {target_path}")
         sys.exit(1)
 
     # Step 2: Run parallel review skills
@@ -135,7 +136,7 @@ def main():
     }
     results = []
 
-    print(f"Spawning {len(review_skills)} plot review skills in parallel...")
+    logger.info(f"Spawning {len(review_skills)} plot review skills in parallel...")
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {}
         for skill, yaml_name in review_skills.items():
@@ -157,31 +158,31 @@ def main():
                 skill_name, success, msg = future.result()
                 results.append((skill_name, success, msg))
                 if success:
-                    print(f"[OK] {skill_name}: {msg}")
+                    logger.info(f"[OK] {skill_name}: {msg}")
                 else:
-                    print(f"[FAIL] {skill_name}: {msg}", file=sys.stderr)
+                    logger.error(f"[FAIL] {skill_name}: {msg}")
             except Exception as exc:
-                print(f"[FAIL] {skill} generated an exception: {exc}", file=sys.stderr)
+                logger.error(f"[FAIL] {skill} generated an exception: {exc}")
                 results.append((skill, False, str(exc)))
 
     # Step 3: Run integration report
-    print("\nIntegrating plot review results...")
+    logger.info("Integrating plot review results...")
     success = integrate_plot_findings.integrate_plot_findings_in_dir(
         output_dir, str(target_path), args.model
     )
     if success:
-        print("[OK] Plot reports integrated successfully.")
-        print(
+        logger.info("Plot reports integrated successfully.")
+        logger.info(
             f"Consolidated Report: {project_paths.get_plot_report_md_path(output_dir, basename)}"
         )
-        print(
+        logger.info(
             f"Consolidated YAML  : {project_paths.get_plot_findings_yaml_path(output_dir, basename)}"
         )
     else:
-        print("[ERROR] Failed to integrate plot findings.", file=sys.stderr)
+        logger.error("Failed to integrate plot findings.")
         sys.exit(1)
 
-    print("\n=== Plot Review Pipeline Finished ===")
+    logger.info("=== Plot Review Pipeline Finished ===")
 
 
 if __name__ == "__main__":

@@ -11,6 +11,9 @@ from src.utils import project_paths
 from src.utils.ai_client import AgyClientError
 from src.utils.ai_task import ReviewSkillInput, ReviewSkillTask
 from src.utils.file_io import read_file
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def archive_previous_review(output_dir, basename, target_path=None):
@@ -41,9 +44,7 @@ def archive_previous_review(output_dir, basename, target_path=None):
     version_dir = project_paths.get_version_dir(output_dir, v_prefix)
     os.makedirs(version_dir, exist_ok=True)
 
-    print(
-        f"\n[Archive] Existing review findings found. Archiving to history/{v_prefix}/..."
-    )
+    logger.info(f"Existing review findings found. Archiving to history/{v_prefix}/...")
 
     # Files to archive
     files_to_archive = {
@@ -58,7 +59,7 @@ def archive_previous_review(output_dir, basename, target_path=None):
         dest_path = os.path.join(version_dir, dest_name)
         if os.path.exists(src_path):
             shutil.copy2(src_path, dest_path)
-            print(f"  Archived: {src_name} -> history/{v_prefix}/{dest_name}")
+            logger.info(f"Archived: {src_name} -> history/{v_prefix}/{dest_name}")
 
     # Archive original novel text (target_path)
     if target_path:
@@ -66,8 +67,8 @@ def archive_previous_review(output_dir, basename, target_path=None):
         if target_path_obj.exists():
             dest_original = os.path.join(version_dir, target_path_obj.name)
             shutil.copy2(str(target_path_obj), dest_original)
-            print(
-                f"  Archived Original Text: {target_path_obj.name} -> history/{v_prefix}/{target_path_obj.name}"
+            logger.info(
+                f"Archived Original Text: {target_path_obj.name} -> history/{v_prefix}/{target_path_obj.name}"
             )
 
     # Clean up current findings and report so they are regenerated
@@ -90,8 +91,8 @@ def run_formatter(input_file, output_file):
         "novel_formatter_helper.py",
     )
     if not os.path.exists(formatter_script):
-        print(
-            f"Warning: Formatter script '{formatter_script}' not found. Performing fallback copy."
+        logger.warning(
+            f"Formatter script '{formatter_script}' not found. Performing fallback copy."
         )
         content = read_file(input_file)
         content = re.sub(r"\[\d+(?:,\s*\d+)*\]", "", content)
@@ -103,7 +104,7 @@ def run_formatter(input_file, output_file):
         return
 
     cmd = ["poetry", "run", "python", formatter_script, input_file, "-o", output_file]
-    print(f"Running mechanical formatter: {' '.join(cmd)}")
+    logger.info(f"Running mechanical formatter: {' '.join(cmd)}")
     subprocess.run(cmd, check=True)
 
 
@@ -113,18 +114,16 @@ def run_filter_context(formatted_file, output_file):
     """
     filter_script = project_paths.get_src_path("filter_context.py")
     if not os.path.exists(filter_script):
-        print("Warning: filter_context.py not found. Skipping context filtering.")
+        logger.warning("filter_context.py not found. Skipping context filtering.")
         return False
 
     cmd = ["poetry", "run", "python", filter_script, formatted_file, output_file]
-    print(f"Running context filter: {' '.join(cmd)}")
+    logger.info(f"Running context filter: {' '.join(cmd)}")
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode == 0:
         return True
     else:
-        print(
-            f"Warning: Context filter failed with error:\n{res.stderr}", file=sys.stderr
-        )
+        logger.warning(f"Context filter failed with error:\n{res.stderr}")
         return False
 
 
@@ -132,13 +131,13 @@ def run_single_review_skill(skill_name, target_text, output_file, model, output_
     """
     Executes a single review skill via ReviewSkillTask.
     """
-    print(f"[{skill_name}] Preparing review prompt...")
+    logger.info(f"[{skill_name}] Preparing review prompt...")
     task = ReviewSkillTask(model=model)
     input_data = ReviewSkillInput(
         skill_name=skill_name, target_text=target_text, output_dir=output_dir
     )
 
-    print(f"[{skill_name}] Running AgyClient ({model})...")
+    logger.info(f"[{skill_name}] Running AgyClient ({model})...")
     try:
         yaml_content = task.execute(input_data)
 
@@ -180,17 +179,17 @@ def _run_step_format(
 
     if is_rereview:
         archive_previous_review(output_dir, basename, target_path=target_path)
-        print(f"[INFO] Re-reviewing existing formatted draft: {formatted_draft}")
+        logger.info(f"Re-reviewing existing formatted draft: {formatted_draft}")
     elif not os.path.exists(formatted_draft):
         try:
             run_formatter(str(target_path), formatted_draft)
-            print(f"[OK] Format completed: {formatted_draft}\n")
+            logger.info(f"Format completed: {formatted_draft}")
         except Exception as e:
-            print(f"[ERROR] Formatting failed: {e}", file=sys.stderr)
+            logger.error(f"Formatting failed: {e}")
             sys.exit(1)
     else:
-        print(
-            f"[INFO] Formatted draft already exists. Skipping formatting: {formatted_draft}"
+        logger.info(
+            f"Formatted draft already exists. Skipping formatting: {formatted_draft}"
         )
 
 
@@ -206,7 +205,7 @@ def _run_step_parallel_reviews(
     }
     results = []
 
-    print(f"Spawning {len(review_skills)} review skills in parallel...")
+    logger.info(f"Spawning {len(review_skills)} review skills in parallel...")
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {}
         for skill, yaml_name in review_skills.items():
@@ -228,11 +227,11 @@ def _run_step_parallel_reviews(
                 skill_name, success, msg = future.result()
                 results.append((skill_name, success, msg))
                 if success:
-                    print(f"[OK] {skill_name}: {msg}")
+                    logger.info(f"[OK] {skill_name}: {msg}")
                 else:
-                    print(f"[FAIL] {skill_name}: {msg}", file=sys.stderr)
+                    logger.error(f"[FAIL] {skill_name}: {msg}")
             except Exception as exc:
-                print(f"[FAIL] {skill} generated an exception: {exc}", file=sys.stderr)
+                logger.error(f"[FAIL] {skill} generated an exception: {exc}")
                 results.append((skill, False, str(exc)))
 
 
@@ -240,32 +239,26 @@ def _run_step_integration(output_dir: str, basename: str, model: str) -> None:
     """
     Executes Step 4: integrates all findings into a final report.
     """
-    print("\nIntegrating review results...")
+    logger.info("Integrating review results...")
     try:
         import integrate_findings
 
-        print(
+        logger.info(
             f"Calling: integrate_findings.integrate_findings_in_dir(output_dir='{output_dir}', model='{model}')"
         )
         success = integrate_findings.integrate_findings_in_dir(output_dir, model)
         if success:
-            print("[OK] Reports integrated successfully.")
-            print(
+            logger.info("Reports integrated successfully.")
+            logger.info(
                 f"Consolidated Report: {project_paths.get_report_md_path(output_dir, basename)}"
             )
-            print(
+            logger.info(
                 f"Consolidated YAML  : {project_paths.get_findings_yaml_path(output_dir, basename)}"
             )
         else:
-            print(
-                "[ERROR] Failed to integrate findings.",
-                file=sys.stderr,
-            )
+            logger.error("Failed to integrate findings.")
     except Exception as e:
-        print(
-            f"[ERROR] Unexpected error while calling integrate_findings: {e}",
-            file=sys.stderr,
-        )
+        logger.error(f"Unexpected error while calling integrate_findings: {e}")
 
 
 def _run_step_server(
@@ -275,7 +268,7 @@ def _run_step_server(
     Executes Step 5: launches the interactive review editor server.
     """
     if not no_server:
-        print("\nStarting Interactive Review Editor UI...")
+        logger.info("Starting Interactive Review Editor UI...")
         server_script = project_paths.get_src_path("review_server.py")
         if os.path.exists(server_script):
             cmd = [
@@ -286,13 +279,10 @@ def _run_step_server(
                 formatted_draft,
                 project_paths.get_findings_yaml_path(output_dir, basename),
             ]
-            print(f"Running: {' '.join(cmd)}")
+            logger.info(f"Running: {' '.join(cmd)}")
             subprocess.run(cmd)
         else:
-            print(
-                "[WARNING] review_server.py not found. Interactive UI skipped.",
-                file=sys.stderr,
-            )
+            logger.warning("review_server.py not found. Interactive UI skipped.")
 
 
 def main():
@@ -326,10 +316,10 @@ def main():
 
     os.makedirs(output_dir, exist_ok=True)
 
-    print("=== Review Pipeline Starting ===")
-    print(f"Target: {target_path}")
-    print(f"Output Directory: {output_dir}")
-    print(f"Model: {args.model}\n")
+    logger.info("=== Review Pipeline Starting ===")
+    logger.info(f"Target: {target_path}")
+    logger.info(f"Output Directory: {output_dir}")
+    logger.info(f"Model: {args.model}")
 
     # Step 1: Run Formatter (or Skip if it's a re-review)
     formatted_draft = project_paths.get_formatted_draft_path(output_dir, basename)
@@ -351,7 +341,7 @@ def main():
     # Step 5: Start Review Editor Server
     _run_step_server(formatted_draft, output_dir, basename, args.no_server)
 
-    print("\n=== Review Pipeline Finished ===")
+    logger.info("=== Review Pipeline Finished ===")
 
 
 if __name__ == "__main__":

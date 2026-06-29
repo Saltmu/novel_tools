@@ -4,6 +4,9 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 from src.utils import project_config
+from src.utils.logger import get_logger
+
+logger = get_logger("sync_check")
 
 
 def main():
@@ -15,7 +18,7 @@ def main():
     folder_id, creds_path_rel = project_config.get_gdrive_config(config)
 
     if not folder_id or not creds_path_rel:
-        print("[ERROR] Could not find Google Drive configuration in antigravity.yaml")
+        logger.error("Could not find Google Drive configuration in antigravity.yaml")
         return
 
     # Handle relative paths in config
@@ -24,13 +27,13 @@ def main():
     else:
         creds_path = os.path.join(root_dir, creds_path_rel)
 
-    print("--- Diagnostic Report ---")
+    logger.info("--- Diagnostic Report ---")
 
     # Check credentials file
     if not os.path.exists(creds_path):
-        print(f"[ERROR] Credentials file not found at {creds_path}")
+        logger.error(f"Credentials file not found at {creds_path}")
         return
-    print("[OK] Credentials file found.")
+    logger.info("Credentials file found.")
 
     try:
         # Load credentials
@@ -40,7 +43,7 @@ def main():
         service = build("drive", "v3", credentials=creds)
 
         # Try to list files in the folder
-        print(f"[INFO] Attempting to access folder ID: {folder_id}")
+        logger.info(f"Attempting to access folder ID: {folder_id}")
         results = (
             service.files()
             .list(
@@ -52,14 +55,14 @@ def main():
 
         items = results.get("files", [])
         if not items:
-            print("[WARNING] No files found in the folder.")
+            logger.warning("No files found in the folder.")
         else:
-            print(f"[OK] Found {len(items)} files in folder:")
+            logger.info(f"Found {len(items)} files in folder:")
             for item in items:
-                print(f" - {item['name']} ({item['id']})")
+                logger.info(f" - {item['name']} ({item['id']})")
 
     except Exception as e:
-        print(f"[ERROR] An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":

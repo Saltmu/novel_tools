@@ -7,6 +7,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
 from src.utils import project_config, project_paths
+from src.utils.logger import get_logger
+
+logger = get_logger("sync_gdrive")
 
 
 def _check_lock_and_cache(cache_file: str, lock_file: str, cache_duration: int) -> bool:
@@ -15,13 +18,13 @@ def _check_lock_and_cache(cache_file: str, lock_file: str, cache_duration: int) 
     Returns True if we should proceed with sync, False otherwise.
     """
     if os.path.exists(lock_file):
-        print("Another sync process is running. Waiting or skipping...")
+        logger.warning("Another sync process is running. Waiting or skipping...")
         return False
 
     if os.path.exists(cache_file):
         last_sync = os.path.getmtime(cache_file)
         if time.time() - last_sync < cache_duration:
-            print("Recently synced. Skipping...")
+            logger.info("Recently synced. Skipping...")
             return False
 
     return True
@@ -35,16 +38,18 @@ def _download_gdrive_file(service, item, output_dir: str) -> None:
     file_id = item["id"]
     mime_type = item["mimeType"]
 
-    print(f"Processing: {name} ({mime_type})")
+    logger.info(f"Processing: {name} ({mime_type})")
 
     if mime_type == "application/vnd.google-apps.folder":
-        print(f"Skipping folder: {name}")
+        logger.info(f"Skipping folder: {name}")
         return
     elif mime_type == "application/vnd.google-apps.document":
         request = service.files().export_media(fileId=file_id, mimeType="text/plain")
         file_path = os.path.join(output_dir, f"{name}.txt")
     elif mime_type.startswith("application/vnd.google-apps."):
-        print(f"Skipping unsupported Google Workspace file: {name} ({mime_type})")
+        logger.warning(
+            f"Skipping unsupported Google Workspace file: {name} ({mime_type})"
+        )
         return
     else:
         request = service.files().get_media(fileId=file_id)
@@ -58,7 +63,7 @@ def _download_gdrive_file(service, item, output_dir: str) -> None:
 
     with open(file_path, "wb") as f:
         f.write(fh.getvalue())
-    print(f"Saved to {file_path}")
+    logger.info(f"Saved to {file_path}")
 
 
 def main():
@@ -76,7 +81,7 @@ def main():
     folder_id, creds_path_rel = project_config.get_gdrive_config(config)
 
     if not folder_id or not creds_path_rel:
-        print("[ERROR] Could not find Google Drive configuration in antigravity.yaml")
+        logger.error("Could not find Google Drive configuration in antigravity.yaml")
         return
 
     creds_path = (
@@ -100,7 +105,7 @@ def main():
         )
         service = build("drive", "v3", credentials=creds)
 
-        print(f"Downloading files from folder: {folder_id}...")
+        logger.info(f"Downloading files from folder: {folder_id}...")
         results = (
             service.files()
             .list(

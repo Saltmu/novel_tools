@@ -78,12 +78,9 @@ def main():
         initial_novel = os.path.basename(args.novel)
     app.state.initial_novel = initial_novel
 
-    print("=== Novel Studio Server Running ===")
     logger.info("=== Novel Studio Server Running ===")
     if initial_novel:
-        print(f"Initial Novel: {initial_novel}")
         logger.info(f"Initial Novel: {initial_novel}")
-    print(f"URL  : http://localhost:{args.port}\n")
     logger.info(f"URL  : http://localhost:{args.port}")
 
     # Start browser auto-opener

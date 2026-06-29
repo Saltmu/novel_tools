@@ -3,19 +3,25 @@ from unittest.mock import MagicMock, patch
 from src.sync_check import main
 
 
-def test_sync_check_config_error(capsys):
+def test_sync_check_config_error(caplog):
+    import logging
+
     # Case: Config file not found or invalid
     with (
         patch("os.path.exists", return_value=False),
         patch("sys.exit"),
+        caplog.at_level(logging.ERROR),
     ):
         main()
-        captured = capsys.readouterr()
-        # It prints diagnostics or error message
-        assert "[ERROR]" in captured.out or "Diagnostics" in captured.out
+        assert (
+            "Could not find Google Drive configuration in antigravity.yaml"
+            in caplog.text
+        )
 
 
-def test_sync_check_diagnostics_success(tmp_path, capsys):
+def test_sync_check_diagnostics_success(tmp_path, caplog):
+    import logging
+
     # Mock credentials file existence
     dummy_creds = tmp_path / "service_account.json"
     dummy_creds.touch()
@@ -54,8 +60,8 @@ def test_sync_check_diagnostics_success(tmp_path, capsys):
             return_value=mock_creds,
         ),
         patch("src.sync_check.build", return_value=mock_service),
+        caplog.at_level(logging.INFO),
     ):
         main()
-        captured = capsys.readouterr()
-        assert "[OK] Credentials file found." in captured.out
-        assert "[OK] Found 1 files in folder:" in captured.out
+        assert "Credentials file found." in caplog.text
+        assert "Found 1 files in folder:" in caplog.text

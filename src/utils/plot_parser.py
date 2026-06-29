@@ -1,5 +1,9 @@
 import re
 
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def parse_plot(file_path):
     with open(file_path, encoding="utf-8") as f:
@@ -68,9 +72,9 @@ def parse_plot(file_path):
 
 def list_chapters(chapters):
     for i, chapter in enumerate(chapters):
-        print(f"{i+1}. {chapter["title"]}: {chapter["name"]}")
+        logger.info(f"{i+1}. {chapter['title']}: {chapter['name']}")
         for j, ep in enumerate(chapter["episodes"]):
-            print(f"   - {ep["title"]}: {ep["name"]}")
+            logger.info(f"   - {ep['title']}: {ep['name']}")
 
 
 def get_chapter_episodes(chapters, chapter_title):

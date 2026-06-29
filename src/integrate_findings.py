@@ -6,7 +6,10 @@ from src.utils import project_paths
 from src.utils.ai_client import AgyClientError
 from src.utils.ai_task import FindingsIntegrationInput, FindingsIntegrationTask
 from src.utils.file_io import read_file
+from src.utils.logger import get_logger
 from src.utils.yaml_handler import YamlHandler
+
+logger = get_logger(__name__)
 
 
 def parse_yaml_file(filepath):
@@ -61,7 +64,7 @@ def run_integration_llm(output_dir, target_text, raw_findings_text, model):
     """
     Calls FindingsIntegrationTask to merge and resolve conflicts in the findings.
     """
-    print(f"Sending consolidation request to AgyClient ({model})...")
+    logger.info(f"Sending consolidation request to AgyClient ({model})...")
     task = FindingsIntegrationTask(model=model)
     input_data = FindingsIntegrationInput(
         target_text=target_text, raw_findings_text=raw_findings_text
@@ -69,10 +72,10 @@ def run_integration_llm(output_dir, target_text, raw_findings_text, model):
     try:
         return task.execute(input_data)
     except AgyClientError as e:
-        print(f"Error calling AgyClient: {e}", file=sys.stderr)
+        logger.error(f"Error calling AgyClient: {e}")
         return None
     except Exception as e:
-        print(f"Unexpected error calling AgyClient: {e}", file=sys.stderr)
+        logger.error(f"Unexpected error calling AgyClient: {e}")
         return None
 
 
@@ -104,13 +107,13 @@ def _collect_raw_findings(output_dir: str) -> list[dict]:
             if os.path.exists(path):
                 yaml_files.append(path)
 
-    print(f"Found {len(yaml_files)} YAML files to integrate.")
+    logger.info(f"Found {len(yaml_files)} YAML files to integrate.")
 
     all_findings = []
     for yf in yaml_files:
         filename = os.path.basename(yf)
         findings = parse_yaml_file(yf)
-        print(f"  - {filename}: {len(findings)} findings")
+        logger.info(f"  - {filename}: {len(findings)} findings")
         for f in findings:
             f["_source_file"] = filename
             all_findings.append(f)
@@ -138,7 +141,7 @@ def integrate_findings_in_dir(output_dir, model):
     Returns True on success, False on failure.
     """
     if not os.path.exists(output_dir):
-        print(f"Error: Directory '{output_dir}' does not exist.", file=sys.stderr)
+        logger.error(f"Directory '{output_dir}' does not exist.")
         return False
 
     basename = os.path.basename(os.path.abspath(output_dir))
@@ -146,10 +149,7 @@ def integrate_findings_in_dir(output_dir, model):
         output_dir, basename
     )
     if not os.path.exists(formatted_txt_path):
-        print(
-            f"Error: '{basename}_formatted.txt' not found in {output_dir}.",
-            file=sys.stderr,
-        )
+        logger.error(f"'{basename}_formatted.txt' not found in {output_dir}.")
         return False
 
     target_text = read_file(formatted_txt_path)
@@ -158,7 +158,7 @@ def integrate_findings_in_dir(output_dir, model):
     all_findings = _collect_raw_findings(output_dir)
 
     if not all_findings:
-        print("No findings to merge. Writing empty integrated findings.")
+        logger.info("No findings to merge. Writing empty integrated findings.")
         integrated_yaml_path = project_paths.get_findings_yaml_path(
             output_dir, basename
         )
@@ -167,7 +167,7 @@ def integrate_findings_in_dir(output_dir, model):
         generate_markdown_report(
             [], project_paths.get_report_md_path(output_dir, basename)
         )
-        print("Done.")
+        logger.info("Done.")
         return True
 
     raw_findings_text = YamlHandler.dump({"findings": all_findings})
@@ -178,27 +178,27 @@ def integrate_findings_in_dir(output_dir, model):
     )
 
     if not merged_yaml_content:
-        print("Error: LLM integration failed. Performing mechanical fallback merging.")
+        logger.error("LLM integration failed. Performing mechanical fallback merging.")
         merged_yaml_content = _fallback_merge(all_findings)
 
     # Write output
     integrated_yaml_path = project_paths.get_findings_yaml_path(output_dir, basename)
     with open(integrated_yaml_path, "w", encoding="utf-8") as f:
         f.write(merged_yaml_content + "\n")
-    print(f"Saved integrated findings to {integrated_yaml_path}")
+    logger.info(f"Saved integrated findings to {integrated_yaml_path}")
 
     # Parse back the merged findings to generate Markdown report
     try:
         merged_findings_list = YamlHandler.load_findings(merged_yaml_content)
     except Exception:
         merged_findings_list = []
-        print(
-            "Warning: Could not parse merged YAML back for Markdown report generation."
+        logger.warning(
+            "Could not parse merged YAML back for Markdown report generation."
         )
 
     report_md_path = project_paths.get_report_md_path(output_dir, basename)
     generate_markdown_report(merged_findings_list, report_md_path)
-    print(f"Saved Markdown report to {report_md_path}")
+    logger.info(f"Saved Markdown report to {report_md_path}")
     return True
 
 

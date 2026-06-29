@@ -6,6 +6,9 @@ import sys
 
 from src.utils import project_config as writer_helper
 from src.utils import project_paths
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # Load stopwords from external resource file
@@ -16,10 +19,7 @@ def _load_stopwords() -> set[str]:
             words = json.load(f)
             return set(words)
     except Exception as e:
-        print(
-            f"Warning: Failed to load stopwords from {stopwords_path}: {e}",
-            file=sys.stderr,
-        )
+        logger.warning(f"Failed to load stopwords from {stopwords_path}: {e}")
         return set()
 
 
@@ -69,9 +69,7 @@ def extract_entities_from_sources(sources_dir):
                     if name and len(name) >= 2:
                         entities.add(name)
         except Exception as e:
-            print(
-                f"Warning: Failed to parse entity from {filename}: {e}", file=sys.stderr
-            )
+            logger.warning(f"Failed to parse entity from {filename}: {e}")
 
     # Filter out stopwords or empty strings
     entities = {e for e in entities if e and e not in STOPWORDS and len(e) >= 2}
