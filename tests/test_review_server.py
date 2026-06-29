@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.testclient import TestClient
 
 from src.review_server import app
-from src.routes.api import WriteParams
+from src.routes.novels import WriteParams
 from src.services import novel_service
 
 client = TestClient(app, raise_server_exceptions=False)
