@@ -11,7 +11,10 @@ from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 
 from src.utils import project_paths
+from src.utils.logger import get_logger
 from src.utils.yaml_handler import YamlHandler
+
+logger = get_logger(__name__)
 
 
 def resolve_paths(novel_name: str) -> tuple[str, str]:
@@ -60,7 +63,7 @@ def stream_process_output(cmd: list[str]) -> StreamingResponse:
     """Runs a command and streams its output via SSE (Server-Sent Events)."""
 
     async def event_generator():
-        print(f"[INFO] Running process stream: {' '.join(cmd)}")
+        logger.info(f"Running process stream: {' '.join(cmd)}")
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=subprocess.PIPE,
@@ -208,5 +211,5 @@ def build_writer_cmd(params: Any) -> list[str]:
 
 def shutdown_server():
     """Triggers server shutdown by sending SIGINT."""
-    print("[INFO] Shutting down Review Editor server...")
+    logger.info("Shutting down Review Editor server...")
     os.kill(os.getpid(), signal.SIGINT)

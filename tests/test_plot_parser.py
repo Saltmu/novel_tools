@@ -87,7 +87,9 @@ def test_parse_plot_duplicate_chapters(tmp_path):
     assert len(chapters[0]["episodes"]) == 2
 
 
-def test_list_chapters(capsys):
+def test_list_chapters(caplog):
+    import logging
+
     chapters = [
         {
             "title": "第一章",
@@ -98,10 +100,11 @@ def test_list_chapters(capsys):
             ],
         }
     ]
-    list_chapters(chapters)
-    captured = capsys.readouterr()
-    expected = "1. 第一章: 章題1\n   - 第一話: 話題1\n   - 第二話: 話題2\n"
-    assert captured.out == expected
+    with caplog.at_level(logging.INFO):
+        list_chapters(chapters)
+    assert "1. 第一章: 章題1" in caplog.text
+    assert "   - 第一話: 話題1" in caplog.text
+    assert "   - 第二話: 話題2" in caplog.text
 
 
 def test_get_chapter_episodes():

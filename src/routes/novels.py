@@ -336,8 +336,8 @@ async def preview_novel(
 ):
     safe_file = os.path.basename(file)
     novel_path = project_paths.get_novel_path(safe_file)
-    print(
-        f"[DEBUG] preview_novel: file={repr(file)}, safe_file={repr(safe_file)}, novel_path={repr(novel_path)}, exists={os.path.exists(novel_path)}, cwd={os.getcwd()}"
+    logger.debug(
+        f"preview_novel: file={repr(file)}, safe_file={repr(safe_file)}, novel_path={repr(novel_path)}, exists={os.path.exists(novel_path)}, cwd={os.getcwd()}"
     )
     if not os.path.exists(novel_path):
         raise HTTPException(

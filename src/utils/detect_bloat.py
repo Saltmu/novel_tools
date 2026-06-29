@@ -3,6 +3,10 @@ import os
 import sys
 from pathlib import Path
 
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 # しきい値の定義
 LIMIT_PYTHON = 1000
 LIMIT_SKILL = 500
@@ -17,7 +21,7 @@ def check_file_bloat(filepath: Path, limit: int) -> tuple[bool, int]:
             lines = sum(1 for _ in f)
         return lines > limit, lines
     except Exception as e:
-        print(f"Warning: Could not read file {filepath}: {e}", file=sys.stderr)
+        logger.warning(f"Could not read file {filepath}: {e}")
         return False, 0
 
 

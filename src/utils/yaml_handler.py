@@ -64,9 +64,10 @@ class YamlHandler:
             elif isinstance(data, list):
                 return cast(list[dict[Any, Any]], data)
         except Exception as e:
-            import sys
+            from src.utils.logger import get_logger
 
-            print(f"Warning: Failed to parse YAML: {e}", file=sys.stderr)
+            logger = get_logger("YamlHandler")
+            logger.warning(f"Failed to parse YAML: {e}")
         return []
 
     @staticmethod
