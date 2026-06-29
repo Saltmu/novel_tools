@@ -6,7 +6,6 @@ import yaml
 
 
 class YamlHandler:
-
     @staticmethod
     def load(filepath: str) -> Any:
         """YAMLファイルを読み込み、Pythonオブジェクトとして返します。
