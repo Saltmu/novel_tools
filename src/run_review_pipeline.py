@@ -48,10 +48,16 @@ def archive_previous_review(output_dir, basename, target_path=None):
 
     # Files to archive
     files_to_archive = {
-        f"{basename}_formatted.txt": f"{basename}_formatted.txt",
-        f"{basename}_findings.yaml": f"{basename}_findings.yaml",
-        f"{basename}_report.md": f"{basename}_report.md",
-        "01_filtered_context.txt": "01_filtered_context.txt",
+        project_paths.FORMATTED_DRAFT_TEMPLATE.format(
+            basename=basename
+        ): project_paths.FORMATTED_DRAFT_TEMPLATE.format(basename=basename),
+        project_paths.FINDINGS_YAML_TEMPLATE.format(
+            basename=basename
+        ): project_paths.FINDINGS_YAML_TEMPLATE.format(basename=basename),
+        project_paths.REPORT_MD_TEMPLATE.format(
+            basename=basename
+        ): project_paths.REPORT_MD_TEMPLATE.format(basename=basename),
+        project_paths.FILTERED_CONTEXT_NAME: project_paths.FILTERED_CONTEXT_NAME,
     }
 
     for src_name, dest_name in files_to_archive.items():
@@ -199,10 +205,7 @@ def _run_step_parallel_reviews(
     """
     Executes Step 3: parallel execution of review skills.
     """
-    review_skills = {
-        "text-reviewer-logic": "02_logic_consistency.yaml",
-        "text-reviewer-style": "03_style_expression.yaml",
-    }
+    review_skills = project_paths.TEXT_REVIEW_SKILLS
     results = []
 
     logger.info(f"Spawning {len(review_skills)} review skills in parallel...")
@@ -326,7 +329,7 @@ def main():
     _run_step_format(target_path, formatted_draft, output_dir, basename)
 
     # Step 2: Run Context Filter
-    filtered_context = os.path.join(output_dir, "01_filtered_context.txt")
+    filtered_context = project_paths.get_filtered_context_path(output_dir)
     run_filter_context(formatted_draft, filtered_context)
 
     # Read formatted draft text

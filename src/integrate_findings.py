@@ -95,8 +95,10 @@ def _collect_raw_findings(output_dir: str) -> list[dict]:
     yaml_files = sorted(
         p
         for p in glob.glob(pattern)
-        # Skip the prefix "01_" which is the filtered context file, not a findings YAML
-        if not os.path.basename(p).startswith("01_")
+        # Skip the filtered context file prefix which is not a findings YAML
+        if not os.path.basename(p).startswith(
+            project_paths.FILTERED_CONTEXT_NAME.split("_")[0] + "_"
+        )
     )
 
     logger.info(f"Found {len(yaml_files)} YAML files to integrate.")
