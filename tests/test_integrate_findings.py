@@ -209,15 +209,37 @@ def test_run_integration_llm_generic_exception():
         assert res is None
 
 
-def test_collect_raw_findings_fallback_yamls(tmp_path):
-    world_yaml = tmp_path / "02_world_logic.yaml"
-    world_yaml.write_text(
+def test_collect_raw_findings_dynamic_scan(tmp_path):
+    """動的スキャンで任意の XX_*.yaml ファイルが検出されることを確認する。"""
+    # 01_filtered_context.txt はスキップされる想定 (yaml ではないが念のため yaml で作成)
+    skip_yaml = tmp_path / "01_filtered_context.yaml"
+    skip_yaml.write_text(
+        "findings:\n  - id: SKIP-001\n    original: skip", encoding="utf-8"
+    )
+
+    # 通常のスキル結果 YAML
+    logic_yaml = tmp_path / "02_world_logic.yaml"
+    logic_yaml.write_text(
         "findings:\n  - id: WOR-001\n    original: text", encoding="utf-8"
     )
 
+    # 将来追加される新しいスキルの YAML（リストに存在しなくても検出されるはず）
+    new_skill_yaml = tmp_path / "09_new_skill.yaml"
+    new_skill_yaml.write_text(
+        "findings:\n  - id: NEW-001\n    original: new", encoding="utf-8"
+    )
+
     findings = _collect_raw_findings(str(tmp_path))
-    assert len(findings) == 1
-    assert findings[0]["id"] == "WOR-001"
+    ids = [f["id"] for f in findings]
+
+    # 02_world_logic と 09_new_skill は検出される
+    assert "WOR-001" in ids
+    assert "NEW-001" in ids
+    # 01_ プレフィックスは除外される
+    assert "SKIP-001" not in ids
+    assert len(findings) == 2
+
+    # _source_file メタデータが付与されている
     assert findings[0]["_source_file"] == "02_world_logic.yaml"
 
 

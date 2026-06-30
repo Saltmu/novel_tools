@@ -82,30 +82,22 @@ def run_integration_llm(output_dir, target_text, raw_findings_text, model):
 def _collect_raw_findings(output_dir: str) -> list[dict]:
     """
     Locates and parses all finding YAML files in the given directory.
-    """
-    yaml_files = []
-    # 1. Check for integrated pipeline YAMLs
-    integrated_yamls = ["02_logic_consistency.yaml", "03_style_expression.yaml"]
-    for yf in integrated_yamls:
-        path = os.path.join(output_dir, yf)
-        if os.path.exists(path):
-            yaml_files.append(path)
 
-    # 2. Check for individual skill YAMLs (fallback / python pipeline)
-    if not yaml_files:
-        individual_yamls = [
-            "02_world_logic.yaml",
-            "03_consistency.yaml",
-            "04_show_dont_tell.yaml",
-            "05_foreshadowing.yaml",
-            "06_pacing.yaml",
-            "07_rhythm.yaml",
-            "08_character_voice.yaml",
-        ]
-        for yf in individual_yamls:
-            path = os.path.join(output_dir, yf)
-            if os.path.exists(path):
-                yaml_files.append(path)
+    YAML files matching the pattern ``[0-9][0-9]_*.yaml`` (with a numeric prefix
+    of 02 or greater) are detected dynamically via directory scan so that adding a
+    new review skill requires no manual update here.
+    """
+    import glob
+
+    # Discover all numbered skill YAML files (e.g. 02_logic_consistency.yaml)
+    # sorted by filename so they are processed in a consistent order.
+    pattern = os.path.join(output_dir, "[0-9][0-9]_*.yaml")
+    yaml_files = sorted(
+        p
+        for p in glob.glob(pattern)
+        # Skip the prefix "01_" which is the filtered context file, not a findings YAML
+        if not os.path.basename(p).startswith("01_")
+    )
 
     logger.info(f"Found {len(yaml_files)} YAML files to integrate.")
 
