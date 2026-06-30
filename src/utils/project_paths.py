@@ -13,6 +13,14 @@ DEFAULT_RESULTS_DIR = "reviews"
 DEFAULT_LOGS_DIR = "logs"
 
 
+# Naming Templates
+FORMATTED_DRAFT_TEMPLATE = "{basename}_formatted.txt"
+FINDINGS_YAML_TEMPLATE = "{basename}_findings.yaml"
+REPORT_MD_TEMPLATE = "{basename}_report.md"
+PLOT_FINDINGS_YAML_TEMPLATE = "{basename}_plot_findings.yaml"
+PLOT_REPORT_MD_TEMPLATE = "{basename}_plot_report.md"
+
+
 def get_output_dir(basename: str, results_dir: str = DEFAULT_RESULTS_DIR) -> str:
     """Returns the output directory path for a given novel basename."""
     # Resolve relative to project root or use as-is
@@ -21,7 +29,7 @@ def get_output_dir(basename: str, results_dir: str = DEFAULT_RESULTS_DIR) -> str
 
 def get_formatted_draft_path(output_dir: str, basename: str) -> str:
     """Returns the standard path for the formatted draft text."""
-    return os.path.join(output_dir, f"{basename}_formatted.txt")
+    return os.path.join(output_dir, FORMATTED_DRAFT_TEMPLATE.format(basename=basename))
 
 
 def resolve_formatted_draft_path(output_dir: str, basename: str) -> str:
@@ -39,7 +47,7 @@ def resolve_formatted_draft_path(output_dir: str, basename: str) -> str:
 
 def get_findings_yaml_path(output_dir: str, basename: str) -> str:
     """Returns the standard path for the integrated findings YAML."""
-    return os.path.join(output_dir, f"{basename}_findings.yaml")
+    return os.path.join(output_dir, FINDINGS_YAML_TEMPLATE.format(basename=basename))
 
 
 def resolve_findings_yaml_path(output_dir: str, basename: str) -> str:
@@ -57,7 +65,7 @@ def resolve_findings_yaml_path(output_dir: str, basename: str) -> str:
 
 def get_report_md_path(output_dir: str, basename: str) -> str:
     """Returns the expected path for the final Markdown report."""
-    return os.path.join(output_dir, f"{basename}_report.md")
+    return os.path.join(output_dir, REPORT_MD_TEMPLATE.format(basename=basename))
 
 
 def get_novels_dir() -> str:
@@ -92,12 +100,14 @@ def get_version_dir(output_dir: str, version: str) -> str:
 
 def get_plot_findings_yaml_path(output_dir: str, basename: str) -> str:
     """Returns the path for the integrated plot findings YAML."""
-    return os.path.join(output_dir, f"{basename}_plot_findings.yaml")
+    return os.path.join(
+        output_dir, PLOT_FINDINGS_YAML_TEMPLATE.format(basename=basename)
+    )
 
 
 def get_plot_report_md_path(output_dir: str, basename: str) -> str:
     """Returns the path for the final plot Markdown report."""
-    return os.path.join(output_dir, f"{basename}_plot_report.md")
+    return os.path.join(output_dir, PLOT_REPORT_MD_TEMPLATE.format(basename=basename))
 
 
 def get_stopwords_path() -> str:
@@ -118,3 +128,22 @@ def get_skills_dir() -> str:
 def get_templates_dir() -> str:
     """Returns the absolute path to the templates directory."""
     return os.path.join(PROJECT_ROOT, "src", "templates")
+
+
+# Pipeline File Constants
+FILTERED_CONTEXT_NAME = "01_filtered_context.txt"
+
+TEXT_REVIEW_SKILLS = {
+    "text-reviewer-logic": "02_logic_consistency.yaml",
+    "text-reviewer-style": "03_style_expression.yaml",
+}
+
+PLOT_REVIEW_SKILLS = {
+    "plot-reviewer-conflict": "02_plot_conflict.yaml",
+    "plot-reviewer-structure": "03_plot_structure.yaml",
+}
+
+
+def get_filtered_context_path(output_dir: str) -> str:
+    """Returns the path to the filtered context file."""
+    return os.path.join(output_dir, FILTERED_CONTEXT_NAME)

@@ -47,8 +47,12 @@ def archive_previous_plot_review(output_dir, basename):
 
     # Files to archive
     files_to_archive = {
-        f"{basename}_plot_findings.yaml": f"{v_prefix}_{basename}_plot_findings.yaml",
-        f"{basename}_plot_report.md": f"{v_prefix}_{basename}_plot_report.md",
+        project_paths.PLOT_FINDINGS_YAML_TEMPLATE.format(
+            basename=basename
+        ): f"{v_prefix}_{basename}_plot_findings.yaml",
+        project_paths.PLOT_REPORT_MD_TEMPLATE.format(
+            basename=basename
+        ): f"{v_prefix}_{basename}_plot_report.md",
     }
 
     for src_name, dest_name in files_to_archive.items():
@@ -130,10 +134,7 @@ def main():
         sys.exit(1)
 
     # Step 2: Run parallel review skills
-    review_skills = {
-        "plot-reviewer-conflict": "02_plot_conflict.yaml",
-        "plot-reviewer-structure": "03_plot_structure.yaml",
-    }
+    review_skills = project_paths.PLOT_REVIEW_SKILLS
     results = []
 
     logger.info(f"Spawning {len(review_skills)} plot review skills in parallel...")

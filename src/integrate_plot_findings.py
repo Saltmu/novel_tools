@@ -77,7 +77,7 @@ def run_integration_llm(output_dir, target_text, raw_findings_text, model):
 def _collect_raw_findings(output_dir: str) -> list[dict]:
     """Locates and parses all plot finding YAML files in the given directory."""
     yaml_files = []
-    integrated_yamls = ["02_plot_conflict.yaml", "03_plot_structure.yaml"]
+    integrated_yamls = list(project_paths.PLOT_REVIEW_SKILLS.values())
     for yf in integrated_yamls:
         path = os.path.join(output_dir, yf)
         if os.path.exists(path):
