@@ -2,8 +2,6 @@ import { state, setSelectedNovelFile } from './state.js';
 import { showToast, initPanelResizer, shutdownServerGlobal, toggleConsole, closeModal, executeGlobalShutdown } from './utils.js';
 import { loadDashboardData, selectDraftCard, loadPreview, selectAndEditNovel, selectAndReviewNovel } from './views/dashboard.js';
 import { runDriveSync } from './views/sync.js';
-import { loadSourcesForWrite, runAiWriting, copyWritingPrompt } from './views/write.js';
-import { runReviewPipeline } from './views/review.js';
 import { loadPlotsData, runPlotReviewPipeline, filterPlotFindings } from './views/plot_review.js';
 import {
     loadEditorData,
@@ -18,7 +16,12 @@ import {
     confirmRollback,
     executeRollback,
     confirmRestoreHistory,
-    executeRestoreHistory
+    executeRestoreHistory,
+    loadSourcesForWrite,
+    runAiWriting,
+    copyWritingPrompt,
+    runReviewPipeline,
+    switchEditorTab
 } from './views/editor.js';
 
 // Parse URL hash to view and file resources
@@ -46,10 +49,20 @@ async function handleRouting() {
         return;
     }
 
-    const { view, file } = parseHash();
+    let { view, file } = parseHash();
     lastHash = window.location.hash || '#/dashboard';
 
-    const validViews = ['dashboard', 'sync', 'write', 'review', 'editor', 'plot_review'];
+    // Redirect old write/review views to editor
+    if (view === 'write' || view === 'review') {
+        if (state.selectedNovelFile) {
+            window.location.hash = `#/editor/${encodeURIComponent(state.selectedNovelFile)}`;
+        } else {
+            window.location.hash = `#/editor`;
+        }
+        return;
+    }
+
+    const validViews = ['dashboard', 'sync', 'editor', 'plot_review'];
     if (!validViews.includes(view)) {
         window.location.hash = '#/dashboard';
         return;
@@ -100,15 +113,6 @@ async function handleRouting() {
             const rollbackBtn = document.getElementById('btn-rollback');
             if (rollbackBtn) rollbackBtn.style.display = 'none';
         }
-    } else if (view === 'review') {
-        if (file) {
-            setSelectedNovelFile(file);
-        }
-        if (state.selectedNovelFile && !file) {
-            window.location.hash = `#/review/${encodeURIComponent(state.selectedNovelFile)}`;
-            return;
-        }
-        await loadDashboardData();
     } else if (view === 'plot_review') {
         await loadPlotsData();
     }
@@ -120,10 +124,11 @@ function switchView(viewId) {
         showToast('プロセス実行中は画面を切り替えられません。');
         return;
     }
+    if (viewId === 'write' || viewId === 'review') {
+        viewId = 'editor';
+    }
     if (viewId === 'editor' && state.selectedNovelFile) {
         window.location.hash = `#/editor/${encodeURIComponent(state.selectedNovelFile)}`;
-    } else if (viewId === 'review' && state.selectedNovelFile) {
-        window.location.hash = `#/review/${encodeURIComponent(state.selectedNovelFile)}`;
     } else {
         window.location.hash = `#/${viewId}`;
     }
@@ -140,10 +145,10 @@ async function loadProjectConfig() {
         if (data.initial_novel && !state.selectedNovelFile) {
             setSelectedNovelFile(data.initial_novel);
             
-            // Sync URL with initial novel if currently on editor/review view without a specified file
+            // Sync URL with initial novel if currently on editor view without a specified file
             const { view, file } = parseHash();
-            if ((view === 'editor' || view === 'review') && !file) {
-                window.location.hash = `#/${view}/${encodeURIComponent(state.selectedNovelFile)}`;
+            if (view === 'editor' && !file) {
+                window.location.hash = `#/editor/${encodeURIComponent(state.selectedNovelFile)}`;
             }
         }
     } catch (err) {
@@ -169,8 +174,6 @@ window.addEventListener('DOMContentLoaded', () => {
     handleRouting();
     
     // Initialize resizers
-    initPanelResizer('write-resizer', 'write-right-panel');
-    initPanelResizer('review-resizer', 'review-right-panel');
     initPanelResizer('sync-resizer', 'sync-right-panel');
     initPanelResizer('plot_review-resizer', 'plot_review-right-panel');
 });
@@ -201,3 +204,4 @@ window.shutdownServerGlobal = shutdownServerGlobal;
 window.toggleConsole = toggleConsole;
 window.closeModal = closeModal;
 window.executeGlobalShutdown = executeGlobalShutdown;
+window.switchEditorTab = switchEditorTab;
